@@ -1,3 +1,5 @@
+Aug 5, 2013
+
 To compile, go to src/ and run
 g++ -O3 mixed-cells.cpp -lgmp
 
