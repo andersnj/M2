@@ -1,5 +1,3 @@
-Aug 5, 2013
-
 To compile, go to src/ and run
 g++ -O3 mixed-cells.cpp -lgmp
 
@@ -31,13 +29,15 @@ Mysterious symbols:
 
 Things we could do to improve the code
 --------------------------------------
-Have an exact field, which stores its elements in words when they fit. For example using the gfan rationals in development.
+* Record and use inconsistency conditions dynamically (at the moment inconsistent "edge pairs" are precomputed)
 
-Do LP solving with doubles, and transform certificates to exact arithmetics.
+* Use a heuristic a la Kojima to select the next polytope; this can be non-exact.
 
-Increase perturbations precission dynamically.
+* Have an exact field, which stores its elements in words when they fit. For example using the gfan rationals in development.
 
+* Do LP solving with doubles, and transform certificates to exact arithmetics.
 
+* Increase perturbations precision dynamically.
 
 
 Primal and duals

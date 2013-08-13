@@ -73,7 +73,7 @@ int main(int argc, char **argv)
   vector<GmpRational> v(2);
   return 0;
   */
-  std::cerr<<"The code does not work at the moment because we do not call the constructor for gmp numbers when constructing a matrix.";
+  std::cerr<<"The code does not work at the moment because we do not call the constructor for gmp numbers when constructing a matrix.\n";
     rand();
     useNewAntiCyclingRule=false;
 

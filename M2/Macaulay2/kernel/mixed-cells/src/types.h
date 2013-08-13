@@ -200,8 +200,10 @@ namespace mixedCells
     {
       return ShortInt(a.rep+b.rep);
     }
-    friend class TrueGen;
-    friend class TrueGen operator*(ShortInt const &a, TrueGen const &b);
+    friend class DoubleGen;
+    friend class DoubleGen operator*(ShortInt const &a, DoubleGen const &b);
+    // friend class TrueGen;
+    // friend class TrueGen operator*(ShortInt const &a, TrueGen const &b);
     //    friend class TrueGen operator/(ShortInt const &a, TrueGen const &b);//!!!!!!!!!!
     friend int volumeToInt(ShortInt const &a)
     {
@@ -306,10 +308,14 @@ namespace mixedCells
     {
       return DoubleGen(a.c*b.rep/a.d);
       }*/
-    friend class TrueGen operator*(ShortInt const &a, TrueGen const &b)
+    friend class DoubleGen operator*(ShortInt const &a, DoubleGen const &b)
     {
-      return TrueGen(a.rep*b.rep);
+      return DoubleGen(a.rep*b.rep);
     }
+    /* friend class TrueGen operator*(ShortInt const &a, TrueGen const &b) */
+    /* { */
+    /*   return TrueGen(a.rep*b.rep); */
+    /* } */
     friend DoubleGen operator*(DoubleGen const &s, DoubleGen const &t)
     {
       //      assert(0);//WHY IS THIS CALLED?
@@ -384,7 +390,7 @@ namespace mixedCells
     {
       dest=ShortRat(0);
       }*/
-  };
+  }; // end DoubleGen
 
   template <class Rational> class RatGen{
     static const int maxlength=3;
@@ -569,6 +575,6 @@ namespace mixedCells
     {
       dest=Rational(0);
     }
-  };
+  }; //end RatGen
 
 };// end namespace mixedCells

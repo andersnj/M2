@@ -2,14 +2,21 @@
 #include "gmprationals.h"
 namespace mixedCells
 {
-  typedef GmpRational LType;
+
+  // First working settings: (double floats)
   //typedef ShortRat LType;
   //typedef DoubleInt LType;
   //typedef ShortInt LType;
+  //typedef DoubleGen RType;
+
   //typedef double LType;
-  //  typedef DoubleGen RType;
+  //typedef double RType; // this can't be RType anymore?!!
+  
+
+  // Second working settings: (exact)
+  typedef GmpRational LType;
   typedef RatGen<LType> RType;
-  //typedef double RType;
+
 
   
   void normalizeRowPair(Matrix<LType> &AL, int j, Vector<RType> &R)
@@ -1599,11 +1606,12 @@ public:
 		    bool dontintersect=false;
 		    for(int f3=0;f3<fans.size();f3++)
 		      {
+			// c = union of cones of f3 feasible wrt f1c1 and those feasible wrt f2c2  
 			BitSet c=table.getNonCandidates(f1,c1,f3);
 			c.add(table.getNonCandidates(f2,c2,f3));
 			//cerr<<table.getNonCandidates(f1,c1,f3);
 			//cerr<<table.getNonCandidates(f2,c2,f3);
-			if(c.negated().sizeOfSubset()==0)
+			if(c.negated().sizeOfSubset()==0) // (cones of f3 feasible wrt f1c1) \cap (cones of f3 feasible wrt f2c2) = \emptyset  
 			  {
 			    dontintersect=true;
 			    a++;
@@ -1640,7 +1648,7 @@ public:
     while(closure());
   }
 
-  void completeTable()
+  void completeTable() // fills in this->table using pairs of edges and transitivity 
   {
 	    for(int f1=0;f1<fans.size();f1++)
 	    	for(int c1=0;c1<fans[f1].size();c1++)
