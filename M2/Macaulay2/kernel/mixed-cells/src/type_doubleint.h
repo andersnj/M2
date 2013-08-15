@@ -6,6 +6,10 @@ namespace mixedCells
   class DoubleInt{
   double rep;
   public:
+    DoubleInt()
+    {
+      rep=0;
+    }
     DoubleInt(double a)
     {
       rep=(double)a;

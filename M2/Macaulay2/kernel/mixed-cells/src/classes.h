@@ -4,11 +4,11 @@ namespace mixedCells
 {
 
   // First working settings: (short machine integers as a base)
-  typedef ShortRat LType;
-  typedef RatGen<LType> RType;
-  //typedef DoubleInt LType;
+  //typedef ShortRat LType;
+  //typedef RatGen<LType> RType;
+  typedef DoubleInt LType;
   //typedef ShortInt LType;
-  //typedef DoubleGen RType;
+  typedef DoubleGen RType;
 
   //typedef double LType;
   //typedef double RType; // this can't be RType anymore?!!

@@ -14,6 +14,12 @@ namespace mixedCells
       rep=(double)a;
     }
     
+    void random()
+    {
+      rep=0;
+      for(int i=0; i<4; i++) rep=(rand()&4095)+(rep/4096);
+      rep/=4096;
+    }
     friend bool isZero(DoubleGen const &a)
     {
       return isZero(a.rep);
