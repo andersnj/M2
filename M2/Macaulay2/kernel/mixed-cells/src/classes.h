@@ -3,8 +3,9 @@
 namespace mixedCells
 {
 
-  // First working settings: (double floats)
-  //typedef ShortRat LType;
+  // First working settings: (short machine integers as a base)
+  typedef ShortRat LType;
+  typedef RatGen<LType> RType;
   //typedef DoubleInt LType;
   //typedef ShortInt LType;
   //typedef DoubleGen RType;
@@ -14,8 +15,8 @@ namespace mixedCells
   
 
   // Second working settings: (exact)
-  typedef GmpRational LType;
-  typedef RatGen<LType> RType;
+  // typedef GmpRational LType;
+  // typedef RatGen<LType> RType;
 
 
   
