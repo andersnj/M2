@@ -104,6 +104,40 @@ int reducePair(Matrix<LType> &L, Vector<RType> &R, bool returnIfZeroDeterminant)
 
   return retSwaps;
 }
+
+
+  Vector<LType> normalForm(Vector<LType> vL, Matrix<LType> const &AL)//assume reduced
+  {
+    int pivotI=-1;
+    int pivotJ=-1;
+    int nonpivots=vL.size();
+    while(AL.nextPivot(pivotI,pivotJ))
+      {
+	nonpivots--;
+	LType s=vL[pivotJ]/AL[pivotI][pivotJ];
+	vL-=s*AL[pivotI].toVector();
+      }
+    Vector<LType> vDestL=Vector<LType>(nonpivots);
+    pivotI=-1;
+    pivotJ=-1;
+    int i=0;
+    int last=-1;
+    while(AL.nextPivot(pivotI,pivotJ))
+      {
+	while(pivotJ-1>last)
+	  {
+	    vDestL[i++]=vL[++last];
+	  }
+	last=pivotJ;
+      }
+    last++;
+    while(last<AL.getWidth())
+      vDestL[i++]=vL[last++];
+    assert(i==nonpivots);
+    return vDestL;
+}
+
+
   void normalFormPair(Vector<LType> vL, RType vR, Vector<LType> &vDestL, RType &vDestR, Matrix<LType> const &AL, Vector<RType> const &AR)//assume reduced
 {
   int pivotI=-1;
@@ -1832,7 +1866,7 @@ public:
 
 
 
-vector<Fan> reduceDimension(int ambientDimension, vector<Fan> const &fans, int &numberOfRemovedDimensions)
+vector<Fan> reduceDimension(int ambientDimension, vector<Fan> const &fans, int &numberOfRemovedDimensions, LType &mixedVolumeMultiplier)
 {//Assuming subspaces are hyperplanes
   int numberOfSubspaces=0;
   for(int i=0;i<fans.size();i++)
@@ -1851,7 +1885,7 @@ vector<Fan> reduceDimension(int ambientDimension, vector<Fan> const &fans, int &
   //  equations.cycleColumnsLeft(1);
   reducePair(equationsL,equationsR,false);
 
-  //cerr<<"EQUATIONS"<<equationsL<<equationsR;
+  cerr<<"EQUATIONS"<<equationsL<<equationsR;
 
   //  equations.reduce(false);
   int rank=equationsL.numberOfPivots();
@@ -1883,35 +1917,23 @@ vector<Fan> reduceDimension(int ambientDimension, vector<Fan> const &fans, int &
 	    newFan.cones.push_back(Cone(inequalities2L.getWidth()+1,inequalities2L,inequalities2R,equations2L,equations2R));
 
 	    //	    cerr<<newFan;assert(0);
-
 	    //cerr<<fans[i].edges.getHeight();
-	    Vector<LType> v1=fans[i].edges[j].toVector();
-	    Vector<LType> v2(v1.size()-equationsL.numberOfPivots());
-	    {
-	      int pivotI=-1;
-	      int pivotJ=-1;
-	      int i=0;
-	      int last=-1;
-	      while(equationsL.nextPivot(pivotI,pivotJ))
-		{
-		  while(pivotJ-1>last)
-		    {
-		      v2[i++]=v1[++last];
-		    }
-		  last=pivotJ;
-		}
-	      last++;
-	      while(last<v1.size())
-		{
-		  //  cerr<<i<<last<<endl;
-		  v2[i++]=v1[last++];
-		}
-	    }
-	    newFan.edges[j].set(v2);
+
+
+	    // We compute the edge vector for the new system by reducing it modulo equationsL.
+	    // That will not change the determinant of a chosen subset of the vectors.
+	    // Since the pivots entries now are zero in the edge vector, we get the determinant
+	    // as the minor times the pivot entries of equationsL. The absolute value of the
+	    // product of the pivot entries is stored in mixedVolumeMultiplier.
+	    newFan.edges[j].set(normalForm(fans[i].edges[j].toVector(),equationsL));
 	  }
 	ret.push_back(newFan);
       }
   //  for(vector<Fan>::const_iterator i=ret.begin();i!=ret.end();i++)cerr<<*i;
+
+  mixedVolumeMultiplier=equationsL.productOfPivots();
+  if(isNegative(mixedVolumeMultiplier))mixedVolumeMultiplier=-mixedVolumeMultiplier;
+
   return ret;
 }
 
