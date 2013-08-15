@@ -427,7 +427,7 @@ template <class typ> class Matrix{
   }
   friend std::ostream& operator<<(std::ostream& s, const Matrix &m)
 {
-  assert(0);
+  //assert(0);
   s<<m.height<<" "<<m.width<<endl;
   for(int i=0;i<m.height;i++)
     {
@@ -532,13 +532,24 @@ template <class typ> class Matrix{
   return ret;
 }
 
+  typ productOfPivots()const
+  {
+    typ ret(1);
+    int pivotI=-1;
+    int pivotJ=-1;
+    while(nextPivot(pivotI,pivotJ))ret=ret*(*this)[pivotI][pivotJ];
+    return ret;
+  }
+
   int reduceAndComputeRank()
 {
   reduce(false);
   return numberOfPivots();
 }
 
-  VectorDouble normalForm(VectorDouble v)const//assume reduced
+
+
+  /*  VectorDouble normalForm(VectorDouble v)const//assume reduced
 {
   int pivotI=-1;
   int pivotJ=-1;
@@ -569,7 +580,7 @@ template <class typ> class Matrix{
   assert(i==nonpivots);
   return ret;
 }
-
+  */
   Matrix normalForms(Matrix const &m)const//assume reduced
 {
   //cerr<<*this;

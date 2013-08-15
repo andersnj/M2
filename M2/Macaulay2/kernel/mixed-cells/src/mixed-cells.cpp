@@ -100,7 +100,10 @@ int main(int argc, char **argv)
 
   //for(int i=0;i<fans.size();i++)cerr<<fans[i];
   int numberOfRemovedDimensions=0;
-  fans=reduceDimension(ambientDimension+1,fans,numberOfRemovedDimensions);
+  LType mixedVolumeMultiplier;
+  fans=reduceDimension(ambientDimension+1,fans,numberOfRemovedDimensions,mixedVolumeMultiplier);
+
+  //cerr<<"MixedVolumeMultiplier:"<<mixedVolumeMultiplier<<endl;
   //cerr<<"-----------------------------------------"<<endl;
   //for(int i=0;i<fans.size();i++)cout<<fans[i];
   
@@ -115,7 +118,7 @@ int main(int argc, char **argv)
 
    mixedCells::allocator.init(1000000);
    mixedCells::allocator.setStackMode(1);
-  cout<<"MixedVolume:"<<recursionData.rek(0,fullSpace)<<endl;
+  cout<<"MixedVolume:"<<recursionData.rek(0,fullSpace)*mixedVolumeMultiplier<<endl;
   //  cerr<<recursionData.table;
    mixedCells::allocator.deinit();
 
