@@ -4,7 +4,10 @@ namespace mixedCells
 {
 
   // First working settings: (short machine integers as a base)
-  //typedef ShortRat LType;
+#ifdef SHORTRAT_SHORTRAT
+  typedef ShortRat LType;
+  typedef RatGen<LType> RType;
+#endif
   //typedef RatGen<LType> RType;
   //typedef ShortInt LType;
 #ifdef DOUBLE_DOUBLE
@@ -484,7 +487,7 @@ namespace mixedCells
     //cerr<<"Destination"<<destinationL<<destinationR;
     return ret;
   }
-#define HASH 1
+  //#define HASH 1
 #if HASH
   //  static unsigned char hashTable[256];
  mutable unsigned char hashTable[256];
@@ -639,6 +642,7 @@ namespace mixedCells
   {
     return n-d;
   }
+#if HASH
   /**
      This method is given inequalities of the form [mL]*x<=[mR]
      and checks if there are some obvious inconsistencies. Only the
@@ -676,8 +680,8 @@ namespace mixedCells
       }
     return false;
   }
-};
-
+#endif
+}; // end of Reducer
 
 
   typedef Reducer<LType,RType> ReducerExact;
@@ -1113,8 +1117,9 @@ namespace mixedCells
 
       newNumberOfInequalities=oldNumberOfInequalities+numberOfAddedInequalities;
 
+#if HASH
       if(reducer.hashedInconsistencyLookup(coneInequalitiesL,coneInequalitiesR,newNumberOfInequalities)){/*cerr<<"A";*/return false;}/*else cerr<<"B";*/
-
+#endif
       int newAffineDimension=reducer.newAffineDimension();
       Matrix<LType> Inequalities=coneInequalitiesL.submatrix(0,0,newNumberOfInequalities,newAffineDimension);
       Vector<RType>  RightHandSide=-coneInequalitiesR.subvector(0,newNumberOfInequalities);

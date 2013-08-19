@@ -1,7 +1,21 @@
+Near future agenda
+------------------
+eliminate dependence on ReducerExact by templating
+
+* functions (non-class methods)
+* classes LP, Cone, Fan 
+
+Compilation
+-----------
 To compile, go to src/ and run
-  g++ -O3 mixed-cells.cpp -lgmp -D DOUBLE_DOUBLE
-or
-  g++ -O3 mixed-cells.cpp -lgmp -D GMPRAT_GMPRAT
+
+  g++ -O3 mixed-cells.cpp -lgmp -D <LTYPE_RTYPE> -D HASH 1
+
+where 
+
+  LTYPE_RTYPE is in {DOUBLE_DOUBLE, GMPRAT_GMPRAT, SHORTRAT_SHORTRAT}
+
+  HASH determines whether a lookup table for conditions with matching RHSs is used
 
 Then run
 time ./a.out ../demicsExamples/cyclic10.dat
@@ -83,3 +97,8 @@ a subvector b' according to the active set of constraints.
 Solving A'x=b' gives us the solution x. We solve this by row reducing [A'|b'] in exact arithmetic.
 After this we substitute the exact solution into the primal, and check in exact arithmetics that
 this is indeed a solution to the primal system.
+
+Doxygen
+-------
+
+doxygen
