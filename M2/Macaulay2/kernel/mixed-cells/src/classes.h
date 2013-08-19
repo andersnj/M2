@@ -6,18 +6,20 @@ namespace mixedCells
   // First working settings: (short machine integers as a base)
   //typedef ShortRat LType;
   //typedef RatGen<LType> RType;
-  typedef DoubleInt LType;
   //typedef ShortInt LType;
+#ifdef DOUBLE_DOUBLE
+  typedef DoubleInt LType;
   typedef DoubleGen RType;
-
+#endif
   //typedef double LType;
   //typedef double RType; // this can't be RType anymore?!!
   
 
   // Second working settings: (exact)
-  // typedef GmpRational LType;
-  // typedef RatGen<LType> RType;
-
+#ifdef GMPRAT_GMPRAT
+  typedef GmpRational LType;
+  typedef RatGen<LType> RType;
+#endif
 
   
   void normalizeRowPair(Matrix<LType> &AL, int j, Vector<RType> &R)

@@ -1,5 +1,7 @@
 To compile, go to src/ and run
-g++ -O3 mixed-cells.cpp -lgmp
+  g++ -O3 mixed-cells.cpp -lgmp -D DOUBLE_DOUBLE
+or
+  g++ -O3 mixed-cells.cpp -lgmp -D GMPRAT_GMPRAT
 
 Then run
 time ./a.out ../demicsExamples/cyclic10.dat
