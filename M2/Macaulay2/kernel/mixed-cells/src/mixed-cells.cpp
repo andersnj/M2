@@ -92,10 +92,10 @@ int main(int argc, char **argv)
       }
   int ambientDimension;
   vector<Polytope> polytopes=readPolytopes(in,ambientDimension);
-  vector<Fan> fans;//(polytopes.size());
+  vector<FanType> fans;//(polytopes.size());
   for(int i=0;i<polytopes.size();i++)
     {
-      fans.push_back(Fan::fromPolytope(polytopes[i]));
+      fans.push_back(FanType::fromPolytope(polytopes[i]));
     }
 
   //for(int i=0;i<fans.size();i++)cerr<<fans[i];
@@ -103,12 +103,12 @@ int main(int argc, char **argv)
   LType mixedVolumeMultiplier;
   fans=reduceDimension(ambientDimension+1,fans,numberOfRemovedDimensions,mixedVolumeMultiplier);
 
-  //cerr<<"MixedVolumeMultiplier:"<<mixedVolumeMultiplier<<endl;
+  //  cerr<<"MixedVolumeMultiplier:"<<mixedVolumeMultiplier<<endl;
   //cerr<<"-----------------------------------------"<<endl;
   //for(int i=0;i<fans.size();i++)cout<<fans[i];
   
   //  Cone fullSpace(ambientDimension+1-numberOfRemovedDimensions,MatrixDouble(0,ambientDimension+1-numberOfRemovedDimensions),MatrixDouble(0,ambientDimension+1-numberOfRemovedDimensions));
-  Cone fullSpace(ambientDimension+1-numberOfRemovedDimensions,Matrix<LType>(0,ambientDimension-numberOfRemovedDimensions),Vector<RType>(0),Matrix<LType>(0,ambientDimension-numberOfRemovedDimensions),Vector<RType>(0));
+  ConeType fullSpace(ambientDimension+1-numberOfRemovedDimensions,Matrix<LType>(0,ambientDimension-numberOfRemovedDimensions),Vector<RType>(0),Matrix<LType>(0,ambientDimension-numberOfRemovedDimensions),Vector<RType>(0));
 
 
   RecursionData recursionData(ambientDimension+1-numberOfRemovedDimensions,fans);

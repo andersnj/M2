@@ -3,19 +3,22 @@ Near future agenda
 eliminate dependence on ReducerExact by templating
 
 * functions (non-class methods)
-* classes LP, Cone, Fan 
+* classes LP, Cone, Fan  Done! -but cannot make haveEmptyIntersection a friend of Cone template 
 
 Compilation
 -----------
 To compile, go to src/ and run
 
-  g++ -O3 mixed-cells.cpp -lgmp -D <LTYPE_RTYPE> -D HASH 1
-
+  g++ -O3 mixed-cells.cpp -lgmp -D<LTYPE_RTYPE> -DHASH=1
 where 
 
   LTYPE_RTYPE is in {DOUBLE_DOUBLE, GMPRAT_GMPRAT, SHORTRAT_SHORTRAT}
 
   HASH determines whether a lookup table for conditions with matching RHSs is used
+
+for example
+  g++ -O3 mixed-cells.cpp -lgmp -DDOUBLE_DOUBLE -DHASH=1
+
 
 Then run
 time ./a.out ../demicsExamples/cyclic10.dat

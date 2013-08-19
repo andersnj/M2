@@ -1,5 +1,7 @@
 #include "shortrationals.h"
 #include "gmprationals.h"
+
+//#define DOUBLE_DOUBLE
 namespace mixedCells
 {
 
@@ -1058,14 +1060,14 @@ namespace mixedCells
     return ret;
   }
 
-  class Cone
+  template <class typL,class typR> class Cone
   {
   public:
     int n;
-    Matrix<LType> inequalitiesL;
-    Vector<RType> inequalitiesR;
-    Matrix<LType> equationsL;
-    Vector<RType> equationsR;
+    Matrix<typL> inequalitiesL;
+    Vector<typR> inequalitiesR;
+    Matrix<typL> equationsL;
+    Vector<typR> equationsR;
     /*    Cone(int n_, MatrixDouble const &inequalities_, MatrixDouble const &equations_):
       n(n_),
       inequalitiesL(inequalities_.submatrix(0,0,inequalities_.getHeight(),n_-1)),
@@ -1078,7 +1080,7 @@ namespace mixedCells
       assert((n-1)==inequalitiesL.getWidth());
       assert((n-1)==equationsL.getWidth());
       }*/
-    Cone(int n_, Matrix<LType> const &ineqL, Vector<RType> const &ineqR, Matrix<LType> const &eqL, Vector<RType> const &eqR):
+    Cone(int n_, Matrix<typL> const &ineqL, Vector<typR> const &ineqR, Matrix<typL> const &eqL, Vector<typR> const &eqR):
       n(n_),
       inequalitiesL(ineqL),
       inequalitiesR(ineqR),
@@ -1107,7 +1109,7 @@ namespace mixedCells
 	if(dot(v,inequalities[i].toVector())<-0.0001)return false;
       return true;
       }*/
-    bool hasPointWithLastCoordinatePositiveInCone(Matrix<LType> &coneInequalitiesL, Vector<RType> &coneInequalitiesR, int oldNumberOfInequalities, int &newNumberOfInequalities, ReducerExact &reducer)
+    bool hasPointWithLastCoordinatePositiveInCone(Matrix<typL> &coneInequalitiesL, Vector<typR> &coneInequalitiesR, int oldNumberOfInequalities, int &newNumberOfInequalities, ReducerExact &reducer)
     {
       //cerr<<"----INCONE"<<endl;
       statistics.nLPs++;
@@ -1121,10 +1123,10 @@ namespace mixedCells
       if(reducer.hashedInconsistencyLookup(coneInequalitiesL,coneInequalitiesR,newNumberOfInequalities)){/*cerr<<"A";*/return false;}/*else cerr<<"B";*/
 #endif
       int newAffineDimension=reducer.newAffineDimension();
-      Matrix<LType> Inequalities=coneInequalitiesL.submatrix(0,0,newNumberOfInequalities,newAffineDimension);
-      Vector<RType>  RightHandSide=-coneInequalitiesR.subvector(0,newNumberOfInequalities);
+      Matrix<typL> Inequalities=coneInequalitiesL.submatrix(0,0,newNumberOfInequalities,newAffineDimension);
+      Vector<typR>  RightHandSide=-coneInequalitiesR.subvector(0,newNumberOfInequalities);
 
-      LPExact lp(Inequalities,Vector<LType>(Inequalities.getWidth()));
+      LPExact lp(Inequalities,Vector<typL>(Inequalities.getWidth()));
       lp.setObjectiveFunction(RightHandSide);
       lp.chooseRightHandSideToMakeFeasibleSolution();
       
@@ -1156,15 +1158,15 @@ namespace mixedCells
       statistics.nLPs++;
       bool isFeasible;
       {
-	Matrix<LType> Inequalities(0,0);
-	Vector<RType> RightHandSide(0);
+	Matrix<typL> Inequalities(0,0);
+	Vector<typR> RightHandSide(0);
 
 	if(reducer)
 	  {
 	    int numberOfInequalities=inequalitiesL.getHeight();
 	    int newAffineDimension=reducer->newAffineDimension();
-	    Inequalities=Matrix<LType>(numberOfInequalities,newAffineDimension);
-	    RightHandSide=Vector<RType>(numberOfInequalities);
+	    Inequalities=Matrix<typL>(numberOfInequalities,newAffineDimension);
+	    RightHandSide=Vector<typR>(numberOfInequalities);
 	    //int newNumberOfInequalities=reducer->storeAndSplitNormalForms(this->inequalitiesL,this->inequalitiesR,Inequalities,RightHandSide);
 	    int newNumberOfInequalities=reducer->reduction(this->inequalitiesL,this->inequalitiesR,Inequalities,RightHandSide,0);
 	    assert(newNumberOfInequalities>=0);
@@ -1176,8 +1178,8 @@ namespace mixedCells
 	  }
 	else
 	  {
-	    Matrix<LType> equationsL=this->equationsL;
-	    Vector<RType> equationsR=this->equationsR;
+	    Matrix<typL> equationsL=this->equationsL;
+	    Vector<typR> equationsR=this->equationsR;
 	    //	    equations.reduce(false);
 	    reducePair(equationsL,equationsR,false);
 	    //	    cerr << equationsL << endl << equationsR << endl; 
@@ -1213,7 +1215,7 @@ namespace mixedCells
 	for(int i=0;i<Inequalities.getHeight();i++)if(Inequalities[i].isZero())if(isPositive(RightHandSide[i]))return false;
 	
 
-	LPExact lp(Inequalities,Vector<LType>(Inequalities.getWidth()));
+	LPExact lp(Inequalities,Vector<typL>(Inequalities.getWidth()));
 	lp.setObjectiveFunction(RightHandSide);
 	lp.chooseRightHandSideToMakeFeasibleSolution();
 	//	cerr<<lp;assert(0);
@@ -1243,8 +1245,9 @@ namespace mixedCells
 	    }
 	}
 	}*/
-  };
-  Cone intersection(Cone const &a, Cone const &b)
+
+
+    friend Cone intersection(Cone const &a, Cone const &b)
   {
     assert(a.n==b.n);
     
@@ -1254,18 +1257,29 @@ namespace mixedCells
 		combineOnTop(a.equationsL,b.equationsL),
 		concatenation(a.equationsR,b.equationsR));
   }
-  bool haveEmptyIntersection(Cone const &a, Cone const &b, ReducerExact *reducer=0)
+
+    /* Does not compile:
+    friend bool haveEmptyIntersection(Cone const &a, Cone const &b, ReducerExact *reducer=0)
   {
     return !intersection(a,b).hasPointWithLastCoordinatePositive(reducer);
     //    return false;//FIX THIS
   }
+    */
 
-  class Fan
+    bool haveEmptyIntersection(Cone const &b, ReducerExact *reducer=0)const
+  {
+    return !intersection(*this,b).hasPointWithLastCoordinatePositive(reducer);
+    //    return false;//FIX THIS
+  }
+  };
+
+
+  template <class typL,class typR> class Fan
   {
     int n;
   public:
-    vector<Cone> cones;
-    Matrix<LType> edges;// every cone comes from an edge - used for finding volume of mixed cell
+    vector<Cone<typL,typR> > cones;
+    Matrix<typL> edges;// every cone comes from an edge - used for finding volume of mixed cell
     int getAmbientDimension()const{return n;}
     Fan(int n_):
       n(n_),
@@ -1288,7 +1302,7 @@ namespace mixedCells
     static Fan fromPolytope(Polytope const &p)
     {
       int numberOfVertices=p.vertices.size();
-      Vector<RType> heights(numberOfVertices);
+      Vector<typR> heights(numberOfVertices);
       for(int i=0;i<numberOfVertices;i++)heights[i].random();
       cerr<<"Heights"<<heights<<endl;
 
@@ -1300,7 +1314,7 @@ namespace mixedCells
 
       int n=p.ambientDimension();
       Fan ret(n+1);
-      Matrix<LType> edgeVectors(edges.size(),n);
+      Matrix<typL> edgeVectors(edges.size(),n);
 
       
       int I=0;
@@ -1308,13 +1322,13 @@ namespace mixedCells
 	{
 	  int a=i->first;
 	  int b=i->second;
-	  Matrix<LType> equationsL(1,n);
-	  Vector<RType> equationsR(1);
+	  Matrix<typL> equationsL(1,n);
+	  Vector<typR> equationsR(1);
 	  equationsR[0]=heights[a]-heights[b];
 	  for(int j=0;j<n;j++)equationsL[0][j]=p.vertices[a][j]-p.vertices[b][j];
 
-	  Matrix<LType> inequalitiesL(numberOfVertices-1,n);
-	  Vector<RType> inequalitiesR(numberOfVertices-1);
+	  Matrix<typL> inequalitiesL(numberOfVertices-1,n);
+	  Vector<typR> inequalitiesR(numberOfVertices-1);
 	  /*	  for(int j=0;j<n+1;j++)inequalities[0][j]=0;
 	  inequalities[0][0]=1;//SIGN OF T
 	  */	  int K=0/*1*/;
@@ -1325,16 +1339,17 @@ namespace mixedCells
 		for(int j=0;j<n;j++)inequalitiesL[K][j]=p.vertices[b][j]-p.vertices[k][j];
 		K++;
 	      }
-	  ret.cones.push_back(Cone(n+1,inequalitiesL,inequalitiesR,equationsL,equationsR));
+	  ret.cones.push_back(Cone<typL,typR> (n+1,inequalitiesL,inequalitiesR,equationsL,equationsR));
 	  for(int j=0;j<n;j++)edgeVectors[I][j]=p.vertices[a][j]-p.vertices[b][j];
 	}
       ret.edges=edgeVectors;
       return ret;
     }
+    
     friend std::ostream &operator<<(std::ostream &out, Fan const &fan)
     {
       out<<"Number of cones in fan:"<<fan.size()<<endl;
-      for(vector<Cone>::const_iterator i=fan.cones.begin();i!=fan.cones.end();i++)
+      for(typename std::vector<Cone<typL,typR> >::const_iterator i=fan.cones.begin();i!=fan.cones.end();i++)
 	{
 	  out<<*i;
 	}
@@ -1343,6 +1358,8 @@ namespace mixedCells
       return out;
     }
   };
+  typedef Cone<LType,RType> ConeType;
+  typedef Fan<LType,RType> FanType;
 
 #define BITSPERINTEGER 32
 #define BITSPERINTEGER_LOG2 5
@@ -1415,7 +1432,7 @@ class Table
 {
   vector<vector<vector<BitSet> > > table;
 public:
-  Table(vector<Fan > const &l):
+  Table(vector<FanType> const &l):
     table(l.size())
   {
     int N=l.size();
@@ -1476,12 +1493,12 @@ public:
 
 class RelationTable
 {
-  vector<Fan > fanList;
+  vector<FanType> fanList;
   Table knownEmptyIntersectionInIntersection;
   Table knownNonEmptyIntersection;
 public:
   int numberOfSolvedLPs;
-  RelationTable(vector<Fan> const &l):
+  RelationTable(vector<FanType> const &l):
     fanList(l),
     knownEmptyIntersectionInIntersection(l),
     knownNonEmptyIntersection(l),
@@ -1514,7 +1531,8 @@ public:
     //    fprintf(Stderr,"UPDATING:f1:%i,c1:%i,f2:%i,c2:%i\n",fan1,cone1,fan2,cone2);
     bool ret;
     if((fan1!=fan2) && (cone1!=cone2))
-      ret=haveEmptyIntersection(fanList[fan1].cones[cone1],fanList[fan2].cones[cone2]);
+      //      ret=haveEmptyIntersection(fanList[fan1].cones[cone1],fanList[fan2].cones[cone2]);
+      ret=fanList[fan1].cones[cone1].haveEmptyIntersection(fanList[fan2].cones[cone2]);
     else
       ret=false;
     //    cerr<<"UPDATING:f1:"<<fan1<<",c1:"<<cone1<<",f2:"<<fan2<<",c2:"<<cone2<<"ret"<<ret<<"\n";
@@ -1554,7 +1572,7 @@ public:
 struct RecursionData
 {
   int ambientDimension; //with the t-coordinate
-  vector<Fan> fans;
+  vector<FanType> fans;
   vector<Matrix<LType> > inequalityMatricesL;//one matrix for each recursion level
   vector<Vector<RType> > inequalityMatricesR;
   IntegerVector inequalityMatricesNumberOfUsedRows1;
@@ -1579,7 +1597,7 @@ public:
     //cerr<<"DETERMINANT"<<d<<endl;
     return volumeToInt(d);
   }
-  RecursionData(int ambientDimension_, vector<Fan> const &fans_):
+  RecursionData(int ambientDimension_, vector<FanType> const &fans_):
     ambientDimension(ambientDimension_),
     table(fans_),
     fans(fans_),
@@ -1715,7 +1733,7 @@ public:
   /*
     Returns mixed volume for subtree.
    */
-  int rek(int index, Cone const &current)
+  int rek(int index, Cone<LType,RType>  const &current)
   {
     statistics.nRekCalls++;
     totalNumberOfCalls++;
@@ -1846,7 +1864,7 @@ public:
 				    }*/
 				  chosen[index]=i;
 				  
-				  Cone next=intersection(current,fans[chosenFans[index]].cones[i]/*,true*/);
+				  Cone<LType,RType>  next=intersection(current,fans[chosenFans[index]].cones[i]/*,true*/);
 				  //if(index==1)next.optimize();//<----------What is the best level for optimizing?
 				  {
 				    //cerr<<"CALLING"<<index+1<<endl;
@@ -1873,7 +1891,7 @@ public:
 
 
 
-vector<Fan> reduceDimension(int ambientDimension, vector<Fan> const &fans, int &numberOfRemovedDimensions, LType &mixedVolumeMultiplier)
+vector<FanType> reduceDimension(int ambientDimension, vector<FanType> const &fans, int &numberOfRemovedDimensions, LType &mixedVolumeMultiplier)
 {//Assuming subspaces are hyperplanes
   int numberOfSubspaces=0;
   for(int i=0;i<fans.size();i++)
@@ -1899,13 +1917,13 @@ vector<Fan> reduceDimension(int ambientDimension, vector<Fan> const &fans, int &
   numberOfRemovedDimensions=rank;
 
 
-  vector<Fan> ret;
+  vector<FanType> ret;
   I=0;
   for(int i=0;i<fans.size();i++)
     if(fans[i].cones.size()!=1)
       {
 	//cerr<<fans[i];
-	Fan newFan(ambientDimension);
+	FanType newFan(ambientDimension);
 	newFan.edges=Matrix<LType>(fans[i].edges.getHeight(),ambientDimension-1-rank);
 	for(int j=0;j<fans[i].cones.size();j++)
 	  {
@@ -1921,7 +1939,7 @@ vector<Fan> reduceDimension(int ambientDimension, vector<Fan> const &fans, int &
 	    normalFormPairs(inequalities2L, inequalities2R, inequalities2L,inequalities2R, equationsL, equationsR);
 
 	    //	    newFan.cones.push_back(Cone(inequalities2.getWidth(),inequalities2,equations2));
-	    newFan.cones.push_back(Cone(inequalities2L.getWidth()+1,inequalities2L,inequalities2R,equations2L,equations2R));
+	    newFan.cones.push_back(Cone<LType,RType> (inequalities2L.getWidth()+1,inequalities2L,inequalities2R,equations2L,equations2R));
 
 	    //	    cerr<<newFan;assert(0);
 	    //cerr<<fans[i].edges.getHeight();
