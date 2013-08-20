@@ -1258,21 +1258,21 @@ namespace mixedCells
 		concatenation(a.equationsR,b.equationsR));
   }
 
-    /* Does not compile:
-    friend bool haveEmptyIntersection(Cone const &a, Cone const &b, ReducerExact *reducer=0)
+  //  Does not compile???
+    friend bool haveEmptyIntersection(Cone const &a, Cone const &b, Reducer<typL,typR> *reducer=0)
   {
     return !intersection(a,b).hasPointWithLastCoordinatePositive(reducer);
     //    return false;//FIX THIS
   }
-    */
-
-    bool haveEmptyIntersection(Cone const &b, ReducerExact *reducer=0)const
+  
+    /*
+  bool haveEmptyIntersection(Cone const &b, ReducerExact *reducer=0)const
   {
     return !intersection(*this,b).hasPointWithLastCoordinatePositive(reducer);
     //    return false;//FIX THIS
   }
-  };
-
+    */
+  }; // end of Cone
 
   template <class typL,class typR> class Fan
   {
@@ -1531,8 +1531,8 @@ public:
     //    fprintf(Stderr,"UPDATING:f1:%i,c1:%i,f2:%i,c2:%i\n",fan1,cone1,fan2,cone2);
     bool ret;
     if((fan1!=fan2) && (cone1!=cone2))
-      //      ret=haveEmptyIntersection(fanList[fan1].cones[cone1],fanList[fan2].cones[cone2]);
-      ret=fanList[fan1].cones[cone1].haveEmptyIntersection(fanList[fan2].cones[cone2]);
+      ret=haveEmptyIntersection(fanList[fan1].cones[cone1],fanList[fan2].cones[cone2]);
+    //ret=fanList[fan1].cones[cone1].haveEmptyIntersection(fanList[fan2].cones[cone2]);
     else
       ret=false;
     //    cerr<<"UPDATING:f1:"<<fan1<<",c1:"<<cone1<<",f2:"<<fan2<<",c2:"<<cone2<<"ret"<<ret<<"\n";
