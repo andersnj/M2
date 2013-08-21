@@ -266,13 +266,13 @@ public:
   {
     v.push_back(a);
     }*/
-  /*  friend Vektor concatenation(Vektor const &a, Vektor const &b)
+  friend Vektor concatenation(Vektor const &a, Vektor const &b)
   {
     Vektor ret(a.size()+b.size());
     for(int i=0;i<a.size();i++)ret[i]=a[i];
     for(int i=0;i<b.size();i++)ret[i+a.size()]=b[i];
     return ret;
-    }*/
+  }
 };
 
 //typedef Vektor<double> FloatVector;

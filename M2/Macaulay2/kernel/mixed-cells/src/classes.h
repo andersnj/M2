@@ -1234,22 +1234,25 @@ namespace mixedCells
       if(isFeasible)statistics.nFeasible++;
       return isFeasible;
     }
-    /*    void optimize()
+    void removeRedundantInequalities()
     {
+      int old=inequalitiesL.getHeight();
       for(int i=0;i<inequalitiesL.getHeight();i++)
 	{
-	  inequalities[i].set(-1*inequalities[i].toVector());
+	  inequalitiesL[i].set(-1*inequalitiesL[i].toVector());
+	  inequalitiesR[i]=-inequalitiesR[i];
 	  bool doRemove=!hasPointWithLastCoordinatePositive();
-	  inequalities[i].set(-1*inequalities[i].toVector());
+	  inequalitiesR[i]=-inequalitiesR[i];
+	  inequalitiesL[i].set(-1*inequalitiesL[i].toVector());
 	  if(doRemove)
 	    {
-	      inequalities=combineOnTop(inequalities.submatrix(0,0,i,inequalities.getWidth()),inequalities.submatrix(i+1,0,inequalities.getHeight(),inequalities.getWidth()));
+	      inequalitiesL=combineOnTop(inequalitiesL.submatrix(0,0,i,inequalitiesL.getWidth()),inequalitiesL.submatrix(i+1,0,inequalitiesL.getHeight(),inequalitiesL.getWidth()));
+	      inequalitiesR=concatenation(inequalitiesR.subvector(0,i),inequalitiesR.subvector(i+1,inequalitiesR.size()));
 	      i--;
 	    }
 	}
-	}*/
-
-
+      fprintf(stderr,"%i->%i\n",old,inequalitiesL.getHeight());
+    }
     friend Cone intersection(Cone const &a, Cone const &b)
   {
     assert(a.n==b.n);
@@ -1863,7 +1866,7 @@ public:
 				  chosen[index]=i;
 				  
 				  Cone<LType,RType>  next=intersection(current,fans[chosenFans[index]].cones[i]/*,true*/);
-				  //if(index==1)next.optimize();//<----------What is the best level for optimizing?
+				  if(index==-1)next.removeRedundantInequalities();//<----------What is the best level for optimizing?
 				  {
 				    //cerr<<"CALLING"<<index+1<<endl;
 				    mixedVolumeAccumulator+=rek(index+1,next);
