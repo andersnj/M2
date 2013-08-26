@@ -703,6 +703,7 @@ namespace mixedCells
  */
 namespace mixedCells
 {
+  static bool inRecursion=false;
   template <class typL,class typR> class LP
   {
   public:    int d,n;
@@ -882,7 +883,14 @@ namespace mixedCells
 	      int newNonBasisElementIndex;
 	      typR imp=improvement(/*i,*/newNonBasisElementIndex);
 	      if(debug)cerr<<"Improvement"<<imp<<"newnonbasisindex"<<newNonBasisElementIndex<<"\n";
-	      if(newNonBasisElementIndex==-1){/*cerr<<"UNBOUNDED"<<endl;*/return -1;} //UNBOUNDED
+	      if(newNonBasisElementIndex==-1){
+		/*		if(inRecursion)
+		  {
+		    cerr<<"UNBOUNDED"<<endl;
+		    cerr<<*this;
+		    }*/
+/*cerr<<"UNBOUNDED"<<endl;*/return -1;
+} //UNBOUNDED
 	      //	      if((imp>=impBest))//needed for perturbation
 	      if(isGreaterEqual(imp,impBest))//needed for perturbation
 		{
@@ -1063,6 +1071,11 @@ namespace mixedCells
   template <class typL, class typR> class Cone;
   template <class typL, class typR> bool haveEmptyIntersection(Cone<typL,typR> const &a, Cone<typL,typR> const &b, Reducer<typL,typR> *reducer=0);
 
+  /**
+     This method represents a polyhedral region give by
+     [inequalitiesL]*x<=[inequalitiesR]
+     [equationsL]*x=[equationsR]
+  */
   template <class typL,class typR> class Cone
   {
   public:
@@ -1237,6 +1250,8 @@ namespace mixedCells
     void removeRedundantInequalities()
     {
       int old=inequalitiesL.getHeight();
+      //cerr<<inequalitiesL;
+      //cerr<<inequalitiesR;
       for(int i=0;i<inequalitiesL.getHeight();i++)
 	{
 	  inequalitiesL[i].set(-1*inequalitiesL[i].toVector());
@@ -1251,18 +1266,18 @@ namespace mixedCells
 	      i--;
 	    }
 	}
-      fprintf(stderr,"%i->%i\n",old,inequalitiesL.getHeight());
+      //fprintf(stderr,"%i->%i\n",old,inequalitiesL.getHeight());
     }
     friend Cone intersection(Cone const &a, Cone const &b)
-  {
-    assert(a.n==b.n);
-    
-    //return Cone(a.n, combineOnTop(a.inequalities,b.inequalities),combineOnTop(a.equations,b.equations));
-    return Cone(a.n,combineOnTop(a.inequalitiesL,b.inequalitiesL),
-		concatenation(a.inequalitiesR,b.inequalitiesR),
-		combineOnTop(a.equationsL,b.equationsL),
-		concatenation(a.equationsR,b.equationsR));
-  }
+    {
+      assert(a.n==b.n);
+      
+      //return Cone(a.n, combineOnTop(a.inequalities,b.inequalities),combineOnTop(a.equations,b.equations));
+      return Cone(a.n,combineOnTop(a.inequalitiesL,b.inequalitiesL),
+		  concatenation(a.inequalitiesR,b.inequalitiesR),
+		  combineOnTop(a.equationsL,b.equationsL),
+		  concatenation(a.equationsR,b.equationsR));
+    }
 
     friend bool haveEmptyIntersection <>(Cone const &a, Cone const &b, Reducer<typL,typR> *reducer);
   }; // end of Cone
@@ -1637,16 +1652,16 @@ public:
       {
 	nonCandidates.add(table.getNonCandidates(chosenFans[i],chosen[i],fanNumber));
       }
-      /* <------------------------------------------------------------------------------------------- Remember to uncomment this
-    for(int j=0;j<nonCandidates.size();j++)
-      if((!nonCandidates[j]))// ||randBool()
-	for(int i=0;i<index;i++)
-	  if(table.intersectTriviallyInIntersection(chosenFans[i], chosen[i], fanNumber, j))
-	    {
-	      nonCandidates[j]=true;
-	      break;
-	    }
-      */
+      /* <------------------------------------------------------------------------------------------- Remember to never uncomment this
+      for(int j=0;j<nonCandidates.size();j++)
+	if((!nonCandidates.get(j)))// ||randBool()
+	  for(int i=0;i<index;i++)
+	    if(table.intersectTriviallyInIntersection(chosenFans[i], chosen[i], fanNumber, j))
+	      {
+		nonCandidates.set(j,true);
+		break;
+	      }
+       */      
     return nonCandidates.negated();
   }
 
@@ -1801,83 +1816,44 @@ public:
 
 		    }
 		}
-	      if(ok)statistics.nLPRunNodes++;
-	      bool pushed=reducer.push(fans[chosenFans[index]].cones[i].equationsL[0].toVector(),fans[chosenFans[index]].cones[i].equationsR[0]);
-	      if(pushed)
+	      if(ok)
 		{
-		  int numberOfAddedInequalities=0;
-		  if(index!=0)inequalityMatricesNumberOfUsedRows1[index]=numberOfAddedInequalities=reducer.singleReduction(inequalityMatricesL[index-1],inequalityMatricesR[index-1],inequalityMatricesNumberOfUsedRows2[index-1],inequalityMatricesL[index],inequalityMatricesR[index]);
-	      //cerr<<"---";
-		  // cerr<<"Number of added:"<<numberOfAddedInequalities<<endl;
-	 	if(index==5)
-		  {
-		    // cerr<<inequalityMatrices[index]<<endl;
-		    // cerr<<numberOfAddedInequalities<<endl;
-		  }
-		//if(ok && !haveEmptyIntersection(current,fans[chosenFans[index]].cones[i],&reducer))
-
-		/*		if(index==6)
-		  {
-		    if(reducer.hashedInconsistencyLookup(inequalityMatrices[index],numberOfAddedInequalities))
-		      {
-			cerr<<"A";
-		      }
-		    else
-		      {
-			cerr<<"B";
-			//cerr<<inequalityMatrices[index]<<endl;
-			//cerr<<numberOfAddedInequalities<<endl;
-
-		      }
-		  }
-		if(reducer.hashedInconsistencyLookup(inequalityMatrices[index],numberOfAddedInequalities))
-		  {
-		    //   cerr<<inequalityMatrices[index]<<endl;
-		    //  cerr<<numberOfAddedInequalities<<endl;
-		  }else*/
-		  if(numberOfAddedInequalities>=0)
-		    if(ok && fans[chosenFans[index]].cones[i].hasPointWithLastCoordinatePositiveInCone(inequalityMatricesL[index],inequalityMatricesR[index],
-												       inequalityMatricesNumberOfUsedRows1[index],
-												       inequalityMatricesNumberOfUsedRows2[index],
-												       reducer))
-		  		{
-				  useNewAntiCyclingRule=false;true;
-				  if(!fans[chosenFans[index]].cones[i].hasPointWithLastCoordinatePositiveInCone(inequalityMatricesL[index],inequalityMatricesR[index],
-													    inequalityMatricesNumberOfUsedRows1[index],
-													    inequalityMatricesNumberOfUsedRows2[index],
-														reducer))
-				    {
-				      //debug=true;
-				      fans[chosenFans[index]].cones[i].hasPointWithLastCoordinatePositiveInCone(inequalityMatricesL[index],inequalityMatricesR[index],
-													    inequalityMatricesNumberOfUsedRows1[index],
-													    inequalityMatricesNumberOfUsedRows2[index],
-														reducer);
-				      assert(0);
-				    }
-				  useNewAntiCyclingRule=false;
-		  
-
-				  /*if(haveEmptyIntersection(current,fans[chosenFans[index]].cones[i],&reducer))
-				    {
-				    cerr<<current;
-				    cerr<<fans[chosenFans[index]].cones[i];
-				    assert(0);
-				    }*/
-				  chosen[index]=i;
-				  
-				  Cone<LType,RType>  next=intersection(current,fans[chosenFans[index]].cones[i]/*,true*/);
-				  if(index==-1)next.removeRedundantInequalities();//<----------What is the best level for optimizing?
-				  {
-				    //cerr<<"CALLING"<<index+1<<endl;
-				    mixedVolumeAccumulator+=rek(index+1,next);
-				  }
-				  chosen[index]=-1;//just for printing
-				}
+		  statistics.nLPRunNodes++;
+		  bool pushed=reducer.push(fans[chosenFans[index]].cones[i].equationsL[0].toVector(),fans[chosenFans[index]].cones[i].equationsR[0]);
+		  if(pushed)
+		    {
+		      int numberOfAddedInequalities=0;
+		      if(index!=0)inequalityMatricesNumberOfUsedRows1[index]=numberOfAddedInequalities=reducer.singleReduction(inequalityMatricesL[index-1],inequalityMatricesR[index-1],inequalityMatricesNumberOfUsedRows2[index-1],inequalityMatricesL[index],inequalityMatricesR[index]);
+		      if(numberOfAddedInequalities>=0)
+			if(fans[chosenFans[index]].cones[i].hasPointWithLastCoordinatePositiveInCone
+			   (inequalityMatricesL[index],inequalityMatricesR[index],
+			    inequalityMatricesNumberOfUsedRows1[index],
+			    inequalityMatricesNumberOfUsedRows2[index],
+			    reducer))
+			  {
+			    
+#if CHECK			    
+			    if(haveEmptyIntersection(current,fans[chosenFans[index]].cones[i],&reducer))
+			      {
+				cerr<<current;
+				cerr<<fans[chosenFans[index]].cones[i];
+				assert(0);
+			      }
+#endif
+			    chosen[index]=i;
+			    
+			    Cone<LType,RType>  next=intersection(current,fans[chosenFans[index]].cones[i]/*,true*/);
+			    //if(index==3)next.removeRedundantInequalities();//<----------What is the best level for optimizing?
+			    {
+			      mixedVolumeAccumulator+=rek(index+1,next);
+			    }
+			    chosen[index]=-1;//just for printing
+			  }
+		      reducer.pop();
+		    }
+		  iterators[index]++;//just for printing
 		}
-	      if(pushed)reducer.pop();
-	      iterators[index]++;//just for printing
 	    }
-
 	nCandidates[index]=-1;//just for printing
 	iterators[index]=0;//just for printing
 

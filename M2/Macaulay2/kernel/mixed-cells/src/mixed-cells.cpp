@@ -11,7 +11,6 @@
 
 using namespace std;
 static bool debug;
-static bool useNewAntiCyclingRule=false;
 void outOfRange(int i, int n)
 {
   cerr<<"Index out of range: index="<<i<<" vector lenght="<<n<<endl;
@@ -75,7 +74,6 @@ int main(int argc, char **argv)
   */
   std::cerr<<"The code does not work at the moment because we do not call the constructor for gmp numbers when constructing a matrix.\n";
     rand();
-    useNewAntiCyclingRule=false;
 
     char *fileName=0;
     if(argc!=2)
@@ -118,6 +116,8 @@ int main(int argc, char **argv)
 
    mixedCells::allocator.init(1000000);
    mixedCells::allocator.setStackMode(1);
+
+   mixedCells::inRecursion=true;
   cout<<"MixedVolume:"<<recursionData.rek(0,fullSpace)*mixedVolumeMultiplier<<endl;
   //  cerr<<recursionData.table;
    mixedCells::allocator.deinit();
