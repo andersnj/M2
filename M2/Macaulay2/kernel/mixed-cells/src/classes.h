@@ -1125,7 +1125,7 @@ namespace mixedCells
 	if(dot(v,inequalities[i].toVector())<-0.0001)return false;
       return true;
       }*/
-    bool hasPointWithLastCoordinatePositiveInCone(Matrix<typL> &coneInequalitiesL, Vector<typR> &coneInequalitiesR, int oldNumberOfInequalities, int &newNumberOfInequalities, ReducerExact &reducer)
+    bool hasPointWithLastCoordinatePositiveInCone(Matrix<typL> &coneInequalitiesL, Vector<typR> &coneInequalitiesR, int oldNumberOfInequalities, int &newNumberOfInequalities, ReducerExact &reducer, bool singleStep=false)
     {
       //cerr<<"----INCONE"<<endl;
       statistics.nLPs++;
@@ -1161,6 +1161,7 @@ namespace mixedCells
 	      //debug=true;
 	    }
 	  status=lp.step();
+	  if(singleStep)break;
 	}
       while(status==1);
       //cerr<<"STATUS"<<status<<endl;//{static int p;assert(p++<9);}
@@ -1771,7 +1772,32 @@ public:
 	  {
 	    if(!usedFans.get(i))
 	      {
-		int n=computeCandidates(index,i).sizeOfSubset();
+		BitSet candidates=computeCandidates(index,i);
+#ifdef USELPFORDYN
+		for(int j=0;j<candidates.size();j++)
+		  if(candidates.get(j))
+		    {
+		      bool knownToBeInfeasible=false;
+		      bool pushed=reducer.push(fans[i].cones[j].equationsL[0].toVector(),fans[i].cones[j].equationsR[0]);
+		      if(pushed)
+			{
+			  int numberOfAddedInequalities=0;
+			  if(index!=0)inequalityMatricesNumberOfUsedRows1[index]=numberOfAddedInequalities=reducer.singleReduction(inequalityMatricesL[index-1],inequalityMatricesR[index-1],inequalityMatricesNumberOfUsedRows2[index-1],inequalityMatricesL[index],inequalityMatricesR[index]);
+			  if(numberOfAddedInequalities>0)//why sharp here and not in the other similar if statement?
+			    if(!fans[i].cones[j].hasPointWithLastCoordinatePositiveInCone
+			       (inequalityMatricesL[index],inequalityMatricesR[index],
+				inequalityMatricesNumberOfUsedRows1[index],
+				inequalityMatricesNumberOfUsedRows2[index],
+				reducer/*,true*/))
+			      {
+				knownToBeInfeasible=true;
+			      }
+			  reducer.pop();
+			}
+		      if(knownToBeInfeasible)candidates.set(j,false);
+		    }
+#endif
+		int n=candidates.sizeOfSubset();
 		if(n<=bestNumberOfCandidates)  //we could choose a strict inequality
 		  {
 		    bestNumberOfCandidates=n;
@@ -1813,7 +1839,6 @@ public:
 		    {
 		      ok=false;
 		      break;
-
 		    }
 		}
 	      if(ok)
@@ -1830,8 +1855,7 @@ public:
 			    inequalityMatricesNumberOfUsedRows1[index],
 			    inequalityMatricesNumberOfUsedRows2[index],
 			    reducer))
-			  {
-			    
+			  {			    
 #if CHECK			    
 			    if(haveEmptyIntersection(current,fans[chosenFans[index]].cones[i],&reducer))
 			      {
