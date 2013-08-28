@@ -1125,7 +1125,7 @@ namespace mixedCells
 	if(dot(v,inequalities[i].toVector())<-0.0001)return false;
       return true;
       }*/
-    bool hasPointWithLastCoordinatePositiveInCone(Matrix<typL> &coneInequalitiesL, Vector<typR> &coneInequalitiesR, int oldNumberOfInequalities, int &newNumberOfInequalities, ReducerExact &reducer, bool singleStep=false)
+    bool hasPointWithLastCoordinatePositiveInCone(Matrix<typL> &coneInequalitiesL, Vector<typR> &coneInequalitiesR, int oldNumberOfInequalities, int &newNumberOfInequalities, ReducerExact &reducer, bool quickExit=false)
     {
       //cerr<<"----INCONE"<<endl;
       statistics.nLPs++;
@@ -1161,7 +1161,7 @@ namespace mixedCells
 	      //debug=true;
 	    }
 	  status=lp.step();
-	  if(singleStep)break;
+	  if(quickExit && loops>=4)break;
 	}
       while(status==1);
       //cerr<<"STATUS"<<status<<endl;//{static int p;assert(p++<9);}
@@ -1788,7 +1788,7 @@ public:
 			       (inequalityMatricesL[index],inequalityMatricesR[index],
 				inequalityMatricesNumberOfUsedRows1[index],
 				inequalityMatricesNumberOfUsedRows2[index],
-				reducer/*,true*/))
+				reducer,true))
 			      {
 				knownToBeInfeasible=true;
 			      }
