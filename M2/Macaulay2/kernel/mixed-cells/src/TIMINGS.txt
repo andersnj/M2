@@ -1,0 +1,57 @@
+cyclic11
+--------
+MixedVolume:35940
+Number of LPs solved:1523383
+Number of recursive calls:305270
+Number of cells found:2829
+Number of feasible LPs:347904
+Number of combinatorially deduced infeasibilities:286
+Number of MizutaniTekedaKojima nodes:13609846
+Number of LP run nodes:2954937
+
+real	0m11.860s
+user	0m11.772s
+sys	0m0.008s
+
+
+cyclic12
+--------
+MixedVolume:500352
+Number of LPs solved:110916423
+Number of recursive calls:13762879
+Number of cells found:31335
+Number of feasible LPs:13918713
+Number of combinatorially deduced infeasibilities:526
+Number of MizutaniTekedaKojima nodes:906281905
+Number of LP run nodes:199534085
+
+real	17m24.050s
+user	17m19.148s
+sys	0m0.580s
+
+cyclic13
+--------
+a.out: classes.h:347: bool mixedCells::Reducer<typL, typR>::push(const mixedCells::Vector<typ>&, const typR&) [with typL = mixedCells::DoubleInt; typR = mixedCells::DoubleGen]: Assertion `false' failed.
+Aborted (core dumped)
+
+real	10m55.241s
+user	10m52.132s
+sys	0m0.384s
+
+chandra17
+---------
+a.out: classes.h:1014: void mixedCells::LP<typL, typR>::chooseRightHandSideToMakeFeasibleSolution() [with typL = mixedCells::DoubleInt; typR = mixedCells::DoubleGen]: Assertion `0' failed.
+Aborted (core dumped)
+
+real	4m44.398s
+user	4m43.160s
+sys	0m0.036s
+
+katsura12
+---------
+a.out: classes.h:1014: void mixedCells::LP<typL, typR>::chooseRightHandSideToMakeFeasibleSolution() [with typL = mixedCells::DoubleInt; typR = mixedCells::DoubleGen]: Assertion `0' failed.
+Aborted (core dumped)
+
+real	0m23.514s
+user	0m23.316s
+sys	0m0.012s
