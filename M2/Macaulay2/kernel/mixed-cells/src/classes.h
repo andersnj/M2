@@ -747,6 +747,14 @@ namespace mixedCells
       if(isNegative(d))return false;
 
       //return false;
+      {
+	cerr<<"Ainv"<<Ainv<<endl;
+	cerr<<"i"<<i<<endl;
+	cerr<<"v:"<<v<<endl;
+	cerr<<"m"<<m<<endl;
+	cerr<<"d:"<<d<<endl;
+      }
+      assert(0);
       return true;
     }
 
@@ -1825,6 +1833,7 @@ public:
       {
 	int bestIndex=-1;
 	int bestNumberOfCandidates=1000000;
+	BitSet bestCandidates;
 	for(int i=0;i<fans.size();i++)
 	  {
 	    if(!usedFans.get(i))
@@ -1872,7 +1881,7 @@ public:
 			      if(added==-1)
 				  knownToBeInfeasible=true;
 			      else
-			      for(int i=0;i<A;i++)
+			      for(int i=0;i<added;i++)
 				if(parentLP->isUnboundedDirection(inequalitiesL,inequalitiesR,i))
 				  knownToBeInfeasible=true;
 			    }
@@ -1885,12 +1894,13 @@ public:
 		if(n<=bestNumberOfCandidates)  //we could choose a strict inequality
 		  {
 		    bestNumberOfCandidates=n;
+		    bestCandidates=candidates;
 		    bestIndex=i;
 		  }
 	      }
 	  }
 	assert(bestIndex!=-1);
-	BitSet candidates=computeCandidates(index,bestIndex);
+	BitSet candidates=bestCandidates;//computeCandidates(index,bestIndex);
 
 
 	chosenFans[index]=bestIndex;
