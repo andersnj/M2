@@ -57,6 +57,7 @@ Future classes:
 
 
  */
+#include "myassert.cpp"
 #include "types.h"
 #include "classes.h"
 

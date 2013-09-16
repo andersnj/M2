@@ -502,7 +502,7 @@ template <class typ> class Matrix{
 
 
   /*
-    Computes the dot product of ith column of *this with jth row of m.
+    Computes the dot product of ith row of *this with jth column of m.
    */
   MY_INLINE typ rowDotColumnOfOther(int i, Matrix const &m, int j)const
   {
@@ -519,6 +519,22 @@ template <class typ> class Matrix{
       {
 	ret+=src1[k]*(*src2);
 	src2+=m.width;
+      }
+    return ret;
+  }
+  MY_INLINE typ vectorDotJthColumn(Vector<typ> const &v, int j)const
+  {
+    TEST assert(j>=0);
+    TEST assert(j<width);
+    TEST assert(v.size()==height);
+
+    typ ret=0;
+    typ * __restrict src1=v.data;
+    typ * __restrict src2=data+j;
+    for(int k=0;k<width;k++)
+      {
+	ret+=src1[k]*(*src2);
+	src2+=width;
       }
     return ret;
   }

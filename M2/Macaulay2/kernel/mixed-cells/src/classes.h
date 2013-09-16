@@ -704,6 +704,10 @@ namespace mixedCells
 namespace mixedCells
 {
   static bool inRecursion=false;
+  /*  template <class typL,class typR> class LP;
+  template <class typL, class typR> bool haveEmptyIntersection(Cone<typL,typR> const &a, Cone<typL,typR> const &b, Reducer<typL,typR> *reducer=0);
+  bool isUnboundedDirection(Vector<typL> const &v)const;
+  */
   template <class typL,class typR> class LP
   {
   public:    int d,n;
@@ -717,6 +721,34 @@ namespace mixedCells
     int edgeCandidateOneEntry;
     vector<int> basis;
     vector<bool> inBasis;
+
+    //    bool isUnboundedDirection(Vector<typL> const &v)const//after introducing row and choosing w as desired.
+    bool isUnboundedDirection(Matrix<typL> const &m, Vector<typR> const &v, int i)const//after introducing row and choosing w as desired.
+    {
+      // We need to check that:
+      // 1) introducing m[i] in the support of y, the other entries of y would also increase meaning that the y>=0 condition is never violated.
+      // 2) this decreases the objective function.
+
+
+      // First check
+      for(int s=0;s<basis.size();s++)
+	//	if(isNegative(-Ainv.vectorDotJthColumn(v,s)))
+	if(isNegative(-m.rowDotColumnOfOther(i,Ainv,s)))
+	  {
+	    return false;
+	  }
+
+      //      cerr<<m;
+      //cerr<<Ainv;
+      // Second check
+      typR d=v[i];
+      for(int j=0;j<Ainvw.size();j++)d-=m[i][j]*Ainvw[j];
+      /*d=-d;*/  if(isPositive(d)){/*cerr<<"TRUE\n";*/return true;}
+      if(isNegative(d))return false;
+
+      //return false;
+      return true;
+    }
 
     void updateCandidateEdge(int i)
     {
@@ -1125,7 +1157,7 @@ namespace mixedCells
 	if(dot(v,inequalities[i].toVector())<-0.0001)return false;
       return true;
       }*/
-    bool hasPointWithLastCoordinatePositiveInCone(Matrix<typL> &coneInequalitiesL, Vector<typR> &coneInequalitiesR, int oldNumberOfInequalities, int &newNumberOfInequalities, ReducerExact &reducer, bool quickExit=false)
+    bool hasPointWithLastCoordinatePositiveInCone(Matrix<typL> &coneInequalitiesL, Vector<typR> &coneInequalitiesR, int oldNumberOfInequalities, int &newNumberOfInequalities, ReducerExact &reducer, Matrix<typL> &Inequalities, LPExact *&lp, bool quickExit=false)
     {
       //cerr<<"----INCONE"<<endl;
       statistics.nLPs++;
@@ -1139,12 +1171,12 @@ namespace mixedCells
       if(reducer.hashedInconsistencyLookup(coneInequalitiesL,coneInequalitiesR,newNumberOfInequalities)){/*cerr<<"A";*/return false;}/*else cerr<<"B";*/
 #endif
       int newAffineDimension=reducer.newAffineDimension();
-      Matrix<typL> Inequalities=coneInequalitiesL.submatrix(0,0,newNumberOfInequalities,newAffineDimension);
+      /*Matrix<typL>*/ Inequalities=coneInequalitiesL.submatrix(0,0,newNumberOfInequalities,newAffineDimension);
       Vector<typR>  RightHandSide=-coneInequalitiesR.subvector(0,newNumberOfInequalities);
 
-      LPExact lp(Inequalities,Vector<typL>(Inequalities.getWidth()));
-      lp.setObjectiveFunction(RightHandSide);
-      lp.chooseRightHandSideToMakeFeasibleSolution();
+      lp=new LPExact(Inequalities,Vector<typL>(Inequalities.getWidth()));
+      lp->setObjectiveFunction(RightHandSide);
+      lp->chooseRightHandSideToMakeFeasibleSolution();
       
       // cerr<<reducer;
       // cerr<<*this<<coneInequalitiesL<<coneInequalitiesR<<oldNumberOfInequalities<<newNumberOfInequalities<<endl;
@@ -1157,11 +1189,11 @@ namespace mixedCells
 	{
 	  if(loops++>10000)
 	    {
-	      cerr<<lp;
+	      cerr<<*lp;
 	      //debug=true;
 	    }
-	  status=lp.step();
-	  if(quickExit && loops>=4)break;
+	  status=lp->step();
+	  if(quickExit && loops>=400)break;
 	}
       while(status==1);
       //cerr<<"STATUS"<<status<<endl;//{static int p;assert(p++<9);}
@@ -1296,6 +1328,8 @@ namespace mixedCells
     int n;
   public:
     vector<Cone<typL,typR> > cones;
+    vector<Cone<typL,typR> > fullDimCones;
+    vector<pair<int,int> > coneNeighbours;
     Matrix<typL> edges;// every cone comes from an edge - used for finding volume of mixed cell
     int getAmbientDimension()const{return n;}
     Fan(int n_):
@@ -1329,13 +1363,36 @@ namespace mixedCells
 	for(int j=0;j<i;j++)
 	  edges.push_back(pair<int,int>(j,i));
 
+
       int n=p.ambientDimension();
       Fan ret(n+1);
       Matrix<typL> edgeVectors(edges.size(),n);
 
+      ret.coneNeighbours=edges;
+      cerr<<"EDGESSIZE"<<edges.size()<<endl;
       
+      for(int I=0;I<numberOfVertices;I++)//build fullDimCones
+	{
+	  	  Matrix<typL> equationsL(0,n);
+	  Vector<typR> equationsR(0);
+	  Matrix<typL> inequalitiesL(numberOfVertices-1,n);
+	  Vector<typR> inequalitiesR(numberOfVertices-1);
+	  
+	  int K=0;
+	  for(int k=0;k<numberOfVertices;k++)
+	    if(k!=I)
+	      {
+		inequalitiesR[K]=heights[I]-heights[k];
+		for(int j=0;j<n;j++)inequalitiesL[K][j]=p.vertices[I][j]-p.vertices[k][j];
+		K++;
+	      }
+	  
+	  ret.fullDimCones.push_back(Cone<typL,typR> (n+1,inequalitiesL,inequalitiesR,equationsL,equationsR));
+	  
+	}
+
       int I=0;
-      for(vector<pair<int, int> >::const_iterator i=edges.begin();i!=edges.end();i++,I++)
+      for(vector<pair<int, int> >::const_iterator i=edges.begin();i!=edges.end();i++,I++)//build cones
 	{
 	  int a=i->first;
 	  int b=i->second;
@@ -1750,7 +1807,7 @@ public:
   /*
     Returns mixed volume for subtree.
    */
-  int rek(int index, Cone<LType,RType>  const &current)
+  int rek(int index, Cone<LType,RType>  const &current, LP<LType,RType> const *parentLP=0)
   {
     statistics.nRekCalls++;
     totalNumberOfCalls++;
@@ -1773,11 +1830,12 @@ public:
 	    if(!usedFans.get(i))
 	      {
 		BitSet candidates=computeCandidates(index,i);
-#ifdef USELPFORDYN
+#ifndef USELPFORDYN
 		for(int j=0;j<candidates.size();j++)
 		  if(candidates.get(j))
 		    {
 		      bool knownToBeInfeasible=false;
+		      /* //Test using LP
 		      bool pushed=reducer.push(fans[i].cones[j].equationsL[0].toVector(),fans[i].cones[j].equationsR[0]);
 		      if(pushed)
 			{
@@ -1794,9 +1852,35 @@ public:
 			      }
 			  reducer.pop();
 			}
+		      */
+		      //Test using Kojima et al trick
+		      if(parentLP)
+			{
+			  //assert(0);
+			  //cerr<<"A:"<<i<<j<<fans[i].coneNeighbours.size()<<endl;
+			  int firstsecond[2];
+      			  firstsecond[0]=fans[i].coneNeighbours[j].first;
+			  firstsecond[1]=fans[i].coneNeighbours[j].second;
+			  for(int k=0;k<2;k++)//NOTEST
+			    {
+			      int A=fans[i].fullDimCones[firstsecond[k]].inequalitiesR.size();
+			      Matrix<LType> inequalitiesL(A,fans[i].getAmbientDimension()-index-2);
+			      Vector<RType> inequalitiesR(A);
+			      int added=reducer.reduction(fans[i].fullDimCones[firstsecond[k]].inequalitiesL,
+						fans[i].fullDimCones[firstsecond[k]].inequalitiesR,
+						inequalitiesL,inequalitiesR,0);
+			      if(added==-1)
+				  knownToBeInfeasible=true;
+			      else
+			      for(int i=0;i<A;i++)
+				if(parentLP->isUnboundedDirection(inequalitiesL,inequalitiesR,i))
+				  knownToBeInfeasible=true;
+			    }
+			}
 		      if(knownToBeInfeasible)candidates.set(j,false);
 		    }
 #endif
+		//		cerr<<candidates;
 		int n=candidates.sizeOfSubset();
 		if(n<=bestNumberOfCandidates)  //we could choose a strict inequality
 		  {
@@ -1849,12 +1933,17 @@ public:
 		    {
 		      int numberOfAddedInequalities=0;
 		      if(index!=0)inequalityMatricesNumberOfUsedRows1[index]=numberOfAddedInequalities=reducer.singleReduction(inequalityMatricesL[index-1],inequalityMatricesR[index-1],inequalityMatricesNumberOfUsedRows2[index-1],inequalityMatricesL[index],inequalityMatricesR[index]);
+
+		      Matrix<LType> Inequalities;
+		      LPExact *lp=0;//*(Inequalities,Vector<LType>(Inequalities.getWidth()));
 		      if(numberOfAddedInequalities>=0)
 			if(fans[chosenFans[index]].cones[i].hasPointWithLastCoordinatePositiveInCone
 			   (inequalityMatricesL[index],inequalityMatricesR[index],
 			    inequalityMatricesNumberOfUsedRows1[index],
 			    inequalityMatricesNumberOfUsedRows2[index],
-			    reducer))
+			    reducer,
+			    Inequalities,
+			    lp))
 			  {			    
 #if CHECK			    
 			    if(haveEmptyIntersection(current,fans[chosenFans[index]].cones[i],&reducer))
@@ -1869,10 +1958,12 @@ public:
 			    Cone<LType,RType>  next=intersection(current,fans[chosenFans[index]].cones[i]/*,true*/);
 			    //if(index==3)next.removeRedundantInequalities();//<----------What is the best level for optimizing?
 			    {
-			      mixedVolumeAccumulator+=rek(index+1,next);
+			      mixedVolumeAccumulator+=rek(index+1,next,lp);
 			    }
 			    chosen[index]=-1;//just for printing
 			  }
+		      if(lp)delete lp;
+		      lp=0;
 		      reducer.pop();
 		    }
 		  iterators[index]++;//just for printing
@@ -1923,9 +2014,25 @@ vector<FanType> reduceDimension(int ambientDimension, vector<FanType> const &fan
   for(int i=0;i<fans.size();i++)
     if(fans[i].cones.size()!=1)
       {
+	assert(fans[i].fullDimCones.size());
+
 	//cerr<<fans[i];
 	FanType newFan(ambientDimension);
 	newFan.edges=Matrix<LType>(fans[i].edges.getHeight(),ambientDimension-1-rank);
+	newFan.coneNeighbours=fans[i].coneNeighbours;
+
+	//WE MUST ALSO UPDATE THE FULLDIMENSINALCONES
+	for(int j=0;j<fans[i].fullDimCones.size();j++)
+	  {
+	    Matrix<LType> equations2L=fans[i].fullDimCones[j].equationsL;
+	    Vector<RType> equations2R=fans[i].fullDimCones[j].equationsR;
+	    Matrix<LType> inequalities2L=fans[i].fullDimCones[j].inequalitiesL;
+	    Vector<RType> inequalities2R=fans[i].fullDimCones[j].inequalitiesR;
+	    normalFormPairs(equations2L, equations2R, equations2L,equations2R, equationsL, equationsR);
+	    normalFormPairs(inequalities2L, inequalities2R, inequalities2L,inequalities2R, equationsL, equationsR);
+	    newFan.fullDimCones.push_back(Cone<LType,RType> (inequalities2L.getWidth()+1,inequalities2L,inequalities2R,equations2L,equations2R));
+	  }
+
 	for(int j=0;j<fans[i].cones.size();j++)
 	  {
 	    Matrix<LType> equations2L=fans[i].cones[j].equationsL;

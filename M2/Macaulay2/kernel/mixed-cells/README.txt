@@ -24,6 +24,9 @@ Then run
 time ./a.out ../demicsExamples/cyclic10.dat
 to test the program.
 
+To get stack traces when assertion fails, compile with
+g++ -O3 mixed-cells.cpp -lgmp -DDOUBLE_DOUBLE -DHASH=1 -D__assert_fail=__assert_fail2 -DSTACKDUMP_ENABLED -rdynamic
+
 To profile
 g++ -O3 mixed-cells.cpp -pg
 ./a.out ../demicsExamples/cyclic11.dat
