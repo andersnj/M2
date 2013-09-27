@@ -738,10 +738,8 @@ namespace mixedCells
 	    return false;
 	  }
 
-      //      cerr<<m;
-      //cerr<<Ainv;
       // Second check
-      typR d=v[i];
+      typR d=-v[i];//SINCE THE DUAL LP IS A MINIMIZING PROBLEM, BUT OUR IMPLEMENTATION IS MAX, WE CHANGE SIGN
       for(int j=0;j<Ainvw.size();j++)d-=m[i][j]*Ainvw[j];
       /*d=-d;*/  if(isPositive(d)){/*cerr<<"TRUE\n";*/return true;}
       if(isNegative(d))return false;
@@ -879,7 +877,7 @@ namespace mixedCells
 
       return ret;
       }*/
-    friend std::ostream& operator<<(std::ostream& s, LP &lp)
+    friend std::ostream& operator<<(std::ostream& s, LP const &lp)
     {
       s<<"LP problem:"<<endl;
       s<<"A="<<lp.A<<endl;
@@ -1180,7 +1178,7 @@ namespace mixedCells
 #endif
       int newAffineDimension=reducer.newAffineDimension();
       /*Matrix<typL>*/ Inequalities=coneInequalitiesL.submatrix(0,0,newNumberOfInequalities,newAffineDimension);
-      Vector<typR>  RightHandSide=-coneInequalitiesR.subvector(0,newNumberOfInequalities);
+      Vector<typR>  RightHandSide=-coneInequalitiesR.subvector(0,newNumberOfInequalities);//SINCE THE DUAL LP IS A MINIMIZING PROBLEM, BUT OUR IMPLEMENTATION IS MAX, WE CHANGE SIGN
 
       lp=new LPExact(Inequalities,Vector<typL>(Inequalities.getWidth()));
       lp->setObjectiveFunction(RightHandSide);
@@ -1201,7 +1199,7 @@ namespace mixedCells
 	      //debug=true;
 	    }
 	  status=lp->step();
-	  if(quickExit && loops>=400)break;
+	  if(quickExit && loops>=40)break;
 	}
       while(status==1);
       //cerr<<"STATUS"<<status<<endl;//{static int p;assert(p++<9);}
@@ -1263,7 +1261,7 @@ namespace mixedCells
 	    
 	    normalFormPairs(inequalitiesL,inequalitiesR,Inequalities,RightHandSide,equationsL,equationsR);
 	    removeZeroRowsPair(Inequalities,RightHandSide);
-	    RightHandSide=-RightHandSide;
+	    RightHandSide=-RightHandSide;//SINCE THE DUAL LP IS A MINIMIZING PROBLEM, BUT OUR IMPLEMENTATION IS MAX, WE CHANGE SIGN
 	  }
 
 	
@@ -1843,25 +1841,39 @@ public:
 		for(int j=0;j<candidates.size();j++)
 		  if(candidates.get(j))
 		    {
+		      bool knownToBeInfeasibleLP=false;
 		      bool knownToBeInfeasible=false;
-		      /* //Test using LP
+#if 0 //<-- enable simplex call here (to compute knowToBeInfeasibleLP)
+		      Matrix<LType> Inequalities;
+		       //Test using LP
 		      bool pushed=reducer.push(fans[i].cones[j].equationsL[0].toVector(),fans[i].cones[j].equationsR[0]);
 		      if(pushed)
 			{
 			  int numberOfAddedInequalities=0;
 			  if(index!=0)inequalityMatricesNumberOfUsedRows1[index]=numberOfAddedInequalities=reducer.singleReduction(inequalityMatricesL[index-1],inequalityMatricesR[index-1],inequalityMatricesNumberOfUsedRows2[index-1],inequalityMatricesL[index],inequalityMatricesR[index]);
-			  if(numberOfAddedInequalities>0)//why sharp here and not in the other similar if statement?
-			    if(!fans[i].cones[j].hasPointWithLastCoordinatePositiveInCone
-			       (inequalityMatricesL[index],inequalityMatricesR[index],
-				inequalityMatricesNumberOfUsedRows1[index],
-				inequalityMatricesNumberOfUsedRows2[index],
-				reducer,true))
-			      {
-				knownToBeInfeasible=true;
-			      }
+			  if(numberOfAddedInequalities==-1)
+			    knownToBeInfeasibleLP=true;
+			  if(numberOfAddedInequalities>=0 && index!=0)//why sharp here and not in the other similar if statement?
+			    //if(numberOfAddedInequalities>0)//why sharp here and not in the other similar if statement?
+			    {
+			      LPExact *lp=0;
+			      if(!fans[i].cones[j].hasPointWithLastCoordinatePositiveInCone
+				 (inequalityMatricesL[index],inequalityMatricesR[index],
+				  inequalityMatricesNumberOfUsedRows1[index],
+				  inequalityMatricesNumberOfUsedRows2[index],
+				  reducer,Inequalities,lp,true/*false*/))
+				{
+				  knownToBeInfeasibleLP=true;
+				}
+			      if(lp)delete lp;
+			    }
 			  reducer.pop();
 			}
-		      */
+		      else
+			{
+			  knownToBeInfeasibleLP=true;
+			}
+#endif
 		      //Test using Kojima et al trick
 		      if(parentLP)
 			{
@@ -1879,13 +1891,33 @@ public:
 						fans[i].fullDimCones[firstsecond[k]].inequalitiesR,
 						inequalitiesL,inequalitiesR,0);
 			      if(added==-1)
+				{
 				  knownToBeInfeasible=true;
+				  // assert(knownToBeInfeasibleLP); //<---- Code for debugging the Kojima test (computation of knowToBeInfeasibleLP must be enabled before enabling this test).
+				}
 			      else
-			      for(int i=0;i<added;i++)
-				if(parentLP->isUnboundedDirection(inequalitiesL,inequalitiesR,i))
-				  knownToBeInfeasible=true;
+			      for(int ii=0;ii<added;ii++)
+				if(parentLP->isUnboundedDirection(inequalitiesL,inequalitiesR,ii))
+				  {
+				    knownToBeInfeasible=true;
+				    /* if(!knownToBeInfeasibleLP) //<---- Code for debugging the Kojima test (computation of knowToBeInfeasibleLP must be enabled before enabling this test).
+				      {
+					cerr<<"parentLP"<<(*parentLP);
+					cerr<<"inequalitiesL"<<inequalitiesL;
+					cerr<<"inequalitiesR"<<inequalitiesR;
+					cerr<<"ii"<<ii<<endl;					
+					cerr<<"Chosen fans vector: "<<chosenFans<<endl;
+					cerr<<"\nChosen cone vector: "<<chosen<<endl;
+					cerr<<fans[chosenFans[0]].cones[chosen[0]];
+					cerr<<"Fan index:"<<i<<endl;
+					cerr<<"Cone index:"<<j<<endl;
+					cerr<<fans[i].cones[j];
+				      }
+				      assert(knownToBeInfeasibleLP);*/
+				  }
 			    }
 			}
+		      knownToBeInfeasible|=knownToBeInfeasibleLP;
 		      if(knownToBeInfeasible)candidates.set(j,false);
 		    }
 #endif
