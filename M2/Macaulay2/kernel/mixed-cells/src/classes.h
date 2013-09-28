@@ -244,7 +244,7 @@ namespace mixedCells
       s<<"Number of cells found:"<<S.nCells<<endl;
       s<<"Number of feasible LPs:"<<S.nFeasible<<endl;
       s<<"Number of combinatorially deduced infeasibilities:"<<S.forFree<<endl;
-      s<<"Number of MizutaniTekedaKojima nodes:"<<S.nMTKNodes<<endl;
+      s<<"Number of MizutaniTakedaKojima nodes:"<<S.nMTKNodes<<endl;
       s<<"Number of LP run nodes:"<<S.nLPRunNodes<<endl;
     }
   };
@@ -826,6 +826,19 @@ namespace mixedCells
   public:
     /**
        The matrix A_ must be kept alive through out the life of the LP.
+
+       How this should work in the future:
+       We should not do memory allocation during the computation.
+       Therefore there will be a fixed set of LPs that are stored in the recursion data.
+       The A and c members are actually pointers to data in the recursion data.
+       The LP will therefore not use all rows of A/entries of c, but rather use d to determine the height.
+       Similarly only the first d entries of w and inBasis matter.
+
+       To reach code that works with these conventions we do the following steps:
+       (1) make the LP have a method setNumberOfRows() which must becalled before calling chooseRightHand...()
+       (2) make the LP class actually use this number rather than A.getHeight() etc.
+       (3) use tables in recursion data when constructing LP rather than copies of the data.
+       (4) put the LPs themselves in the recursion data.
      */
     LP(Matrix<typL> const &A_, Vector<typL> const &c_):
       A(A_),
@@ -1882,7 +1895,7 @@ public:
 			  int firstsecond[2];
       			  firstsecond[0]=fans[i].coneNeighbours[j].first;
 			  firstsecond[1]=fans[i].coneNeighbours[j].second;
-			  for(int k=0;k<2;k++)//NOTEST
+			  for(int k=0;!knownToBeInfeasible&&k<2;k++)//NOTEST
 			    {
 			      int A=fans[i].fullDimCones[firstsecond[k]].inequalitiesR.size();
 			      Matrix<LType> inequalitiesL(A,fans[i].getAmbientDimension()-index-2);
@@ -1896,7 +1909,7 @@ public:
 				  // assert(knownToBeInfeasibleLP); //<---- Code for debugging the Kojima test (computation of knowToBeInfeasibleLP must be enabled before enabling this test).
 				}
 			      else
-			      for(int ii=0;ii<added;ii++)
+			      for(int ii=0;!knownToBeInfeasible&&ii<added;ii++)
 				if(parentLP->isUnboundedDirection(inequalitiesL,inequalitiesR,ii))
 				  {
 				    knownToBeInfeasible=true;
@@ -1942,7 +1955,7 @@ public:
 	nCandidates[index]=bestNumberOfCandidates;//just for printing
 
 	static int iterationNumber;
-	if(!(iterationNumber++ & (16*256-1)))
+	if(1)	if(!(iterationNumber++ & (16*256-1)))
 	  //	  log2
 	  	{
 	  fprintf(stderr,"Iteration level:%i, Chosen fan:%i, Number of candidates:%i, Iteration Number:%i, Useful (%i/%i)=%f\n",index,bestIndex,bestNumberOfCandidates,iterationNumber,numberOfUsefulCalls,totalNumberOfCalls,float(numberOfUsefulCalls)/totalNumberOfCalls);
