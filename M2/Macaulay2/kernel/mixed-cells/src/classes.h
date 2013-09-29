@@ -697,7 +697,7 @@ namespace mixedCells
 
 /*
   Simplex algorithm for lp of the form
-  max <w,y> subject to
+  min <w,y> subject to 
   yA=c
   y>=0
  */
@@ -715,7 +715,7 @@ namespace mixedCells
     Matrix<typL> Ainv;
     Vector<typR> Ainvw;
     Vector<typL> c;
-    Vector<typR> w;
+    Vector<typR> www;
     Vector<typL> yValues;
     Vector<typL> edgeCandidateValues;
     int edgeCandidateOneEntry;
@@ -740,7 +740,7 @@ namespace mixedCells
 
       // Second check
       typR d=-v[i];//SINCE THE DUAL LP IS A MINIMIZING PROBLEM, BUT OUR IMPLEMENTATION IS MAX, WE CHANGE SIGN
-      for(int j=0;j<Ainvw.size();j++)d-=m[i][j]*Ainvw[j];
+      for(int j=0;j<Ainvw.size();j++)d+=m[i][j]*Ainvw[j];
       /*d=-d;*/  if(isPositive(d)){/*cerr<<"TRUE\n";*/return true;}
       if(isNegative(d))return false;
 
@@ -767,9 +767,9 @@ namespace mixedCells
     bool isImprovingDirection(int i)//const//i is non-basis
     {
       //      updateCandidateEdge(i);
-      typR d=w[i];
+      typR d=-www[i];
       //      for(int j=0;j<basis.size();j++)d+=edgeCandidateValues[j]*w[basis[j]];
-      for(int j=0;j<Ainvw.size();j++)d-=A[i][j]*Ainvw[j];
+      for(int j=0;j<Ainvw.size();j++)d+=A[i][j]*Ainvw[j];
       if(debug)cerr<<"EDGE"<<edgeCandidateValues<<"Oneidex:"<<edgeCandidateOneEntry<<"d"<<d<<endl;
       //      return dot(v,w)>0;
       if(isPositive(d))return true;
@@ -785,8 +785,8 @@ namespace mixedCells
     typR improvement(/*int i,*/ int &newNonBasisMemberIndex)
     {
       //updateCandidateEdge(i);
-      typR ew=w[edgeCandidateOneEntry];
-      for(int j=0;j<basis.size();j++)ew+=edgeCandidateValues[j]*w[basis[j]];
+      typR ew=-www[edgeCandidateOneEntry];
+      for(int j=0;j<basis.size();j++)ew-=edgeCandidateValues[j]*www[basis[j]];
       typR ret;
       bool first=true;
       newNonBasisMemberIndex=-1;
@@ -843,7 +843,7 @@ namespace mixedCells
   LP(Matrix<typL> const &A_, Vector<typL> const &c_):
     A(A_),
       c(c_),
-      w(A_.getHeight(),false),
+      www(A_.getHeight(),false),
       Ainv(A_.getWidth(),A_.getWidth()),
       yValues(A_.getWidth(),false),
       edgeCandidateValues(A_.getWidth(),false),
@@ -862,7 +862,7 @@ namespace mixedCells
     void setObjectiveFunction(Vector<typR> const &w_)
     {
       //      assert(w.size()==w_.size());// Sizes do not have to match anymore
-      w=w_;
+      www=w_;
     }
     void setCurrentBasis(vector<int> const &basis_)
     {
@@ -902,7 +902,7 @@ namespace mixedCells
       s<<"A="<<lp.A<<endl;
       
       s<<"c="<<lp.c;
-      s<<"w="<<lp.w<<endl;
+      s<<"w="<<lp.www<<endl;
       s<<"yValues="<<lp.yValues<<endl;
       /*      {
 	Matrix ym(1,lp.y.size());ym[0].set(lp.y);
@@ -922,7 +922,7 @@ namespace mixedCells
       Ainvw.clear();
       for(int j=0;j<basis.size();j++)
 	for(int k=0;k<Ainv.getHeight();k++)
-	  Ainvw[k]+=Ainv[k][j]*w[basis[j]];
+	  Ainvw[k]+=Ainv[k][j]*www[basis[j]];
     }
     int step()
     {
@@ -1199,7 +1199,7 @@ namespace mixedCells
       int newAffineDimension=reducer.newAffineDimension();
       assert(coneInequalitiesL.getWidth()==newAffineDimension);
       /*Matrix<typL>*/ //Inequalities=coneInequalitiesL.submatrix(0,0,newNumberOfInequalities,newAffineDimension);
-      Vector<typR>  RightHandSide=-coneInequalitiesR.subvector(0,newNumberOfInequalities);//SINCE THE DUAL LP IS A MINIMIZING PROBLEM, BUT OUR IMPLEMENTATION IS MAX, WE CHANGE SIGN
+      Vector<typR>  RightHandSide=coneInequalitiesR.subvector(0,newNumberOfInequalities);//SINCE THE DUAL LP IS A MINIMIZING PROBLEM, BUT OUR IMPLEMENTATION IS MAX, WE CHANGE SIGN
 
 
       lp=new LPExact(coneInequalitiesL,Vector<typL>(newAffineDimension));
@@ -1242,13 +1242,14 @@ namespace mixedCells
 
 	if(reducer)
 	  {
+	    assert(0);//it is not clear that right hand sides are treated correctly in the following code
 	    int numberOfInequalities=inequalitiesL.getHeight();
 	    int newAffineDimension=reducer->newAffineDimension();
 	    Inequalities=Matrix<typL>(numberOfInequalities,newAffineDimension);
 	    RightHandSide=Vector<typR>(numberOfInequalities);
 	    //int newNumberOfInequalities=reducer->storeAndSplitNormalForms(this->inequalitiesL,this->inequalitiesR,Inequalities,RightHandSide);
 	    int newNumberOfInequalities=reducer->reduction(this->inequalitiesL,this->inequalitiesR,Inequalities,RightHandSide,0);
-	    assert(newNumberOfInequalities>=0);
+	    assert(0);	    assert(newNumberOfInequalities>=0);
 	    if(newNumberOfInequalities!=this->inequalitiesL.getHeight())
 	      {
 		Inequalities=Inequalities.submatrix(0,0,newNumberOfInequalities,Inequalities.getWidth());
@@ -1285,13 +1286,13 @@ namespace mixedCells
 	    
 	    normalFormPairs(inequalitiesL,inequalitiesR,Inequalities,RightHandSide,equationsL,equationsR);
 	    removeZeroRowsPair(Inequalities,RightHandSide);
-	    RightHandSide=-RightHandSide;//SINCE THE DUAL LP IS A MINIMIZING PROBLEM, BUT OUR IMPLEMENTATION IS MAX, WE CHANGE SIGN
+	    //RightHandSide=-RightHandSide;//SINCE THE DUAL LP IS A MINIMIZING PROBLEM, BUT OUR IMPLEMENTATION IS MAX, WE CHANGE SIGN
 	  }
 
 	
 	//If inequalities do not span space, then we may restrict
 	Inequalities=Inequalities.reduceDimension();
-	for(int i=0;i<Inequalities.getHeight();i++)if(Inequalities[i].isZero())if(isPositive(RightHandSide[i]))return false;
+	for(int i=0;i<Inequalities.getHeight();i++)if(Inequalities[i].isZero())if(isNegative(RightHandSide[i]))return false;
 	
 
 	LPExact lp(Inequalities,Vector<typL>(Inequalities.getWidth()));
