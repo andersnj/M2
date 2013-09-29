@@ -711,7 +711,7 @@ namespace mixedCells
   template <class typL,class typR> class LP
   {
   public:    int d,n;
-    Matrix<typL> const &A;
+    Matrix<typL> const *A;
     Matrix<typL> Ainv;
     Vector<typR> Ainvw;
     Vector<typL> c;
@@ -762,14 +762,14 @@ namespace mixedCells
       // cerr << "Ainv " << Ainv;
       // cerr << "A " << A;
       for(int j=0;j<basis.size();j++)
-	edgeCandidateValues[j]=-A.rowDotColumnOfOther(i,Ainv,j);
+	edgeCandidateValues[j]=-(*A).rowDotColumnOfOther(i,Ainv,j);
     }
     bool isImprovingDirection(int i)//const//i is non-basis
     {
       //      updateCandidateEdge(i);
       typR d=-(*www)[i];
       //      for(int j=0;j<basis.size();j++)d+=edgeCandidateValues[j]*w[basis[j]];
-      for(int j=0;j<Ainvw.size();j++)d+=A[i][j]*Ainvw[j];
+      for(int j=0;j<Ainvw.size();j++)d+=(*A)[i][j]*Ainvw[j];
       if(debug)cerr<<"EDGE"<<edgeCandidateValues<<"Oneidex:"<<edgeCandidateOneEntry<<"d"<<d<<endl;
       //      return dot(v,w)>0;
       if(isPositive(d))return true;
@@ -840,9 +840,9 @@ namespace mixedCells
        (3) use tables in recursion data when constructing LP rather than copies of the data.
        (4) put the LPs themselves in the recursion data.
      */
-  LP(Matrix<typL> const &A_, Vector<typL> const &c_):
-    A(A_),
-      c(c_),
+  LP(Matrix<typL> const &A_):
+    A(&A_),
+      c(Vector<typL>(A_.getWidth())),
       www(0),
       Ainv(A_.getWidth(),A_.getWidth()),
       yValues(A_.getWidth(),false),
@@ -851,7 +851,7 @@ namespace mixedCells
 	{
 	  d=-1;
 	  //      d=A.getHeight();
-	  n=A.getWidth();
+	  n=A->getWidth();
 	  assert(n==c.size());
 	}
     
@@ -1038,13 +1038,13 @@ namespace mixedCells
     void chooseRightHandSideToMakeFeasibleSolution()
     {
       assert(d>=0);
-      Matrix<typL> A2=A.transposed();//MALLOC
-      c=Vector<typL> (A.getWidth());//MALLOC
+      Matrix<typL> A2=A->transposed();//MALLOC
+      c=Vector<typL> (A->getWidth());//MALLOC
       A2.reduce(false);
       basis=vector<int>();//MALLOC
       inBasis=vector<bool>(d);//MALLOC
-      yValues=Vector<typL>(A.getWidth());
-      Matrix<typL> ASub(A.getWidth(),A.getWidth());
+      yValues=Vector<typL>(A->getWidth());
+      Matrix<typL> ASub(A->getWidth(),A->getWidth());
       int index=0;
       for(int i=0;i<inBasis.size();i++)inBasis[i]=false;
       {
@@ -1052,11 +1052,11 @@ namespace mixedCells
 	int pivotJ=-1;
 	while(A2.nextPivot(pivotI,pivotJ))
 	  {
-	    c+=A[pivotJ].toVector();
+	    c+=(*A)[pivotJ].toVector();
 	    yValues[index]=1;
 	    inBasis[pivotJ]=true;
 	    basis.push_back(pivotJ);
-	    ASub[index++].set(A[pivotJ].toVector());
+	    ASub[index++].set((*A)[pivotJ].toVector());
 	  }
 	assert(Ainv.getHeight()==ASub.getHeight());
 	assert(Ainv.getWidth()==ASub.getWidth());
@@ -1065,7 +1065,7 @@ namespace mixedCells
 	assert(Ainv.getWidth()==ASub.getWidth());
 	updateAinvw();
       }
-      if(index!=A.getWidth())
+      if(index!=A->getWidth())
 	{
 	  cerr<<*this;
 	  cerr<<"A2"<<A2<<endl;
@@ -1183,7 +1183,7 @@ namespace mixedCells
 	if(dot(v,inequalities[i].toVector())<-0.0001)return false;
       return true;
       }*/
-    bool hasPointWithLastCoordinatePositiveInCone(Matrix<typL> &coneInequalitiesL, Vector<typR> &coneInequalitiesR, int oldNumberOfInequalities, int &newNumberOfInequalities, ReducerExact &reducer/*, Matrix<typL> &Inequalities*/, LPExact *&lp, bool quickExit=false)//coneInequalitiesL/R must survive until lp is destroyed
+    bool hasPointWithLastCoordinatePositiveInCone(Matrix<typL> &coneInequalitiesL, Vector<typR> &coneInequalitiesR, int oldNumberOfInequalities, int &newNumberOfInequalities, ReducerExact &reducer/*, Matrix<typL> &Inequalities*/, LPExact &lp, bool quickExit=false)//coneInequalitiesL/R must survive until lp is destroyed
     {
       //cerr<<"----INCONE"<<endl;
       statistics.nLPs++;
@@ -1202,11 +1202,11 @@ namespace mixedCells
       //      Vector<typR>  RightHandSide=coneInequalitiesR.subvector(0,newNumberOfInequalities);//SINCE THE DUAL LP IS A MINIMIZING PROBLEM, BUT OUR IMPLEMENTATION IS MAX, WE CHANGE SIGN
 
 
-      lp=new LPExact(coneInequalitiesL,Vector<typL>(newAffineDimension));
+      //lp=new LPExact(coneInequalitiesL);
       //lp=new LPExact(Inequalities,Vector<typL>(Inequalities.getWidth()));
-      lp->setNumberOfRows(newNumberOfInequalities);
-      lp->setObjectiveFunction(coneInequalitiesR/*RightHandSide*/);
-      lp->chooseRightHandSideToMakeFeasibleSolution();
+      lp.setNumberOfRows(newNumberOfInequalities);
+      lp.setObjectiveFunction(coneInequalitiesR/*RightHandSide*/);
+      lp.chooseRightHandSideToMakeFeasibleSolution();
       
       // cerr<<reducer;
       // cerr<<*this<<coneInequalitiesL<<coneInequalitiesR<<oldNumberOfInequalities<<newNumberOfInequalities<<endl;
@@ -1219,10 +1219,10 @@ namespace mixedCells
 	{
 	  if(loops++>10000)
 	    {
-	      cerr<<*lp;
+	      cerr<<lp;
 	      //debug=true;
 	    }
-	  status=lp->step();
+	  status=lp.step();
 	  if(quickExit && loops>=40)break;
 	}
       while(status==1);
@@ -1295,7 +1295,7 @@ namespace mixedCells
 	for(int i=0;i<Inequalities.getHeight();i++)if(Inequalities[i].isZero())if(isNegative(RightHandSide[i]))return false;
 	
 
-	LPExact lp(Inequalities,Vector<typL>(Inequalities.getWidth()));
+	LPExact lp(Inequalities);
 	lp.setNumberOfRows(Inequalities.getHeight());
 	lp.setObjectiveFunction(RightHandSide);
 	lp.chooseRightHandSideToMakeFeasibleSolution();
@@ -1681,6 +1681,7 @@ struct RecursionData
   vector<FanType> fans;
   vector<Matrix<LType> > inequalityMatricesL;//one matrix for each recursion level
   vector<Vector<RType> > inequalityMatricesR;
+  vector<LPExact> lpList;
   IntegerVector inequalityMatricesNumberOfUsedRows1;
   IntegerVector inequalityMatricesNumberOfUsedRows2;
   IntegerVector chosen;
@@ -1733,6 +1734,10 @@ public:
       {
 	inequalityMatricesL.push_back(Matrix<LType>(min((i+1)*maximalNumberOfInequalities,totalNumberOfInequalities),ambientDimension-i-1-1));
 	inequalityMatricesR.push_back(Vector<RType>(min((i+1)*maximalNumberOfInequalities,totalNumberOfInequalities)));
+      }
+    for(int i=0;i<ambientDimension-1;i++)
+      {
+	lpList.push_back(LPExact(inequalityMatricesL[i]));
       }
   }
   BitSet computeCandidates(int index, int fanNumber)
@@ -1882,16 +1887,15 @@ public:
 			  if(numberOfAddedInequalities>=0 && index!=0)//why sharp here and not in the other similar if statement?
 			    //if(numberOfAddedInequalities>0)//why sharp here and not in the other similar if statement?
 			    {
-			      LPExact *lp=0;
+			      //LPExact lp(inequalityMatricesL[index]);
 			      if(!fans[i].cones[j].hasPointWithLastCoordinatePositiveInCone
 				 (inequalityMatricesL[index],inequalityMatricesR[index],
 				  inequalityMatricesNumberOfUsedRows1[index],
 				  inequalityMatricesNumberOfUsedRows2[index],
-				  reducer,/*Inequalities,*/lp,true/*false*/))
+				  reducer,/*Inequalities,*/lpList[index],true/*false*/))
 				{
 				  knownToBeInfeasibleLP=true;
 				}
-			      if(lp)delete lp;
 			    }
 			  reducer.pop();
 			}
@@ -2003,7 +2007,7 @@ public:
 		      if(index!=0)inequalityMatricesNumberOfUsedRows1[index]=numberOfAddedInequalities=reducer.singleReduction(inequalityMatricesL[index-1],inequalityMatricesR[index-1],inequalityMatricesNumberOfUsedRows2[index-1],inequalityMatricesL[index],inequalityMatricesR[index]);
 
 		      Matrix<LType> Inequalities;
-		      LPExact *lp=0;//*(Inequalities,Vector<LType>(Inequalities.getWidth()));
+		      //LPExact lp(inequalityMatricesL[index]);
 		      if(numberOfAddedInequalities>=0)
 			if(fans[chosenFans[index]].cones[i].hasPointWithLastCoordinatePositiveInCone
 			   (inequalityMatricesL[index],inequalityMatricesR[index],
@@ -2011,7 +2015,7 @@ public:
 			    inequalityMatricesNumberOfUsedRows2[index],
 			    reducer,
 			    /*Inequalities,*/
-			    lp))
+			    lpList[index]))
 			  {			    
 #if CHECK			    
 			    if(haveEmptyIntersection(current,fans[chosenFans[index]].cones[i],&reducer))
@@ -2026,12 +2030,10 @@ public:
 			    Cone<LType,RType>  next=intersection(current,fans[chosenFans[index]].cones[i]/*,true*/);
 			    //if(index==3)next.removeRedundantInequalities();//<----------What is the best level for optimizing?
 			    {
-			      mixedVolumeAccumulator+=rek(index+1,next,lp);
+			      mixedVolumeAccumulator+=rek(index+1,next,&(lpList[index]));
 			    }
 			    chosen[index]=-1;//just for printing
 			  }
-		      if(lp)delete lp;
-		      lp=0;
 		      reducer.pop();
 		    }
 		  iterators[index]++;//just for printing
