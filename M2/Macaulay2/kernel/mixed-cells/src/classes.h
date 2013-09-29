@@ -715,7 +715,7 @@ namespace mixedCells
     Matrix<typL> Ainv;
     Vector<typR> Ainvw;
     Vector<typL> c;
-    Vector<typR> www;
+    Vector<typR> const *www;
     Vector<typL> yValues;
     Vector<typL> edgeCandidateValues;
     int edgeCandidateOneEntry;
@@ -767,7 +767,7 @@ namespace mixedCells
     bool isImprovingDirection(int i)//const//i is non-basis
     {
       //      updateCandidateEdge(i);
-      typR d=-www[i];
+      typR d=-(*www)[i];
       //      for(int j=0;j<basis.size();j++)d+=edgeCandidateValues[j]*w[basis[j]];
       for(int j=0;j<Ainvw.size();j++)d+=A[i][j]*Ainvw[j];
       if(debug)cerr<<"EDGE"<<edgeCandidateValues<<"Oneidex:"<<edgeCandidateOneEntry<<"d"<<d<<endl;
@@ -785,8 +785,8 @@ namespace mixedCells
     typR improvement(/*int i,*/ int &newNonBasisMemberIndex)
     {
       //updateCandidateEdge(i);
-      typR ew=-www[edgeCandidateOneEntry];
-      for(int j=0;j<basis.size();j++)ew-=edgeCandidateValues[j]*www[basis[j]];
+      typR ew=-(*www)[edgeCandidateOneEntry];
+      for(int j=0;j<basis.size();j++)ew-=edgeCandidateValues[j]*(*www)[basis[j]];
       typR ret;
       bool first=true;
       newNonBasisMemberIndex=-1;
@@ -843,7 +843,7 @@ namespace mixedCells
   LP(Matrix<typL> const &A_, Vector<typL> const &c_):
     A(A_),
       c(c_),
-      www(A_.getHeight(),false),
+      www(0),
       Ainv(A_.getWidth(),A_.getWidth()),
       yValues(A_.getWidth(),false),
       edgeCandidateValues(A_.getWidth(),false),
@@ -862,7 +862,7 @@ namespace mixedCells
     void setObjectiveFunction(Vector<typR> const &w_)
     {
       //      assert(w.size()==w_.size());// Sizes do not have to match anymore
-      www=w_;
+      www=&w_;
     }
     void setCurrentBasis(vector<int> const &basis_)
     {
@@ -902,7 +902,7 @@ namespace mixedCells
       s<<"A="<<lp.A<<endl;
       
       s<<"c="<<lp.c;
-      s<<"w="<<lp.www<<endl;
+      s<<"w="<<(*lp.www)<<endl;
       s<<"yValues="<<lp.yValues<<endl;
       /*      {
 	Matrix ym(1,lp.y.size());ym[0].set(lp.y);
@@ -922,7 +922,7 @@ namespace mixedCells
       Ainvw.clear();
       for(int j=0;j<basis.size();j++)
 	for(int k=0;k<Ainv.getHeight();k++)
-	  Ainvw[k]+=Ainv[k][j]*www[basis[j]];
+	  Ainvw[k]+=Ainv[k][j]*(*www)[basis[j]];
     }
     int step()
     {
@@ -1183,7 +1183,7 @@ namespace mixedCells
 	if(dot(v,inequalities[i].toVector())<-0.0001)return false;
       return true;
       }*/
-    bool hasPointWithLastCoordinatePositiveInCone(Matrix<typL> &coneInequalitiesL, Vector<typR> &coneInequalitiesR, int oldNumberOfInequalities, int &newNumberOfInequalities, ReducerExact &reducer/*, Matrix<typL> &Inequalities*/, LPExact *&lp, bool quickExit=false)
+    bool hasPointWithLastCoordinatePositiveInCone(Matrix<typL> &coneInequalitiesL, Vector<typR> &coneInequalitiesR, int oldNumberOfInequalities, int &newNumberOfInequalities, ReducerExact &reducer/*, Matrix<typL> &Inequalities*/, LPExact *&lp, bool quickExit=false)//coneInequalitiesL/R must survive until lp is destroyed
     {
       //cerr<<"----INCONE"<<endl;
       statistics.nLPs++;
@@ -1199,13 +1199,13 @@ namespace mixedCells
       int newAffineDimension=reducer.newAffineDimension();
       assert(coneInequalitiesL.getWidth()==newAffineDimension);
       /*Matrix<typL>*/ //Inequalities=coneInequalitiesL.submatrix(0,0,newNumberOfInequalities,newAffineDimension);
-      Vector<typR>  RightHandSide=coneInequalitiesR.subvector(0,newNumberOfInequalities);//SINCE THE DUAL LP IS A MINIMIZING PROBLEM, BUT OUR IMPLEMENTATION IS MAX, WE CHANGE SIGN
+      //      Vector<typR>  RightHandSide=coneInequalitiesR.subvector(0,newNumberOfInequalities);//SINCE THE DUAL LP IS A MINIMIZING PROBLEM, BUT OUR IMPLEMENTATION IS MAX, WE CHANGE SIGN
 
 
       lp=new LPExact(coneInequalitiesL,Vector<typL>(newAffineDimension));
       //lp=new LPExact(Inequalities,Vector<typL>(Inequalities.getWidth()));
       lp->setNumberOfRows(newNumberOfInequalities);
-      lp->setObjectiveFunction(RightHandSide);
+      lp->setObjectiveFunction(coneInequalitiesR/*RightHandSide*/);
       lp->chooseRightHandSideToMakeFeasibleSolution();
       
       // cerr<<reducer;
