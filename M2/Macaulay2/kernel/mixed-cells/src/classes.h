@@ -840,29 +840,35 @@ namespace mixedCells
        (3) use tables in recursion data when constructing LP rather than copies of the data.
        (4) put the LPs themselves in the recursion data.
      */
-    LP(Matrix<typL> const &A_, Vector<typL> const &c_):
-      A(A_),
+  LP(Matrix<typL> const &A_, Vector<typL> const &c_):
+    A(A_),
       c(c_),
       w(A_.getHeight(),false),
       Ainv(A_.getWidth(),A_.getWidth()),
       yValues(A_.getWidth(),false),
       edgeCandidateValues(A_.getWidth(),false),
       Ainvw(A_.getWidth(),false)
+	{
+	  d=-1;
+	  //      d=A.getHeight();
+	  n=A.getWidth();
+	  assert(n==c.size());
+	}
+    
+    void setNumberOfRows(int d_)
     {
-      d=A.getHeight();
-      n=A.getWidth();
-      assert(n==c.size());
+      d=d_;
     }
     void setObjectiveFunction(Vector<typR> const &w_)
     {
-      assert(w.size()==w_.size());
+      //      assert(w.size()==w_.size());// Sizes do not have to match anymore
       w=w_;
     }
     void setCurrentBasis(vector<int> const &basis_)
     {
       basis=basis_;
-      inBasis=vector<bool>(d);
-      for(int i=0;i<inBasis.size();i++)inBasis[i]=false;
+      inBasis=vector<bool>(d);//MALLOC
+      for(int i=0;i<d;i++)inBasis[i]=false;
       for(int i=0;i<basis_.size();i++)
 	inBasis[basis[i]]=true;
       //????
@@ -892,7 +898,7 @@ namespace mixedCells
       }*/
     friend std::ostream& operator<<(std::ostream& s, LP const &lp)
     {
-      s<<"LP problem:"<<endl;
+      s<<"LP problem(d="<<lp.d<<")"<<endl;
       s<<"A="<<lp.A<<endl;
       
       s<<"c="<<lp.c;
@@ -1031,11 +1037,12 @@ namespace mixedCells
     */
     void chooseRightHandSideToMakeFeasibleSolution()
     {
-      Matrix<typL> A2=A.transposed();
-      c=Vector<typL> (A.getWidth());
+      assert(d>=0);
+      Matrix<typL> A2=A.transposed();//MALLOC
+      c=Vector<typL> (A.getWidth());//MALLOC
       A2.reduce(false);
-      basis=vector<int>();
-      inBasis=vector<bool>(A.getHeight());
+      basis=vector<int>();//MALLOC
+      inBasis=vector<bool>(d);//MALLOC
       yValues=Vector<typL>(A.getWidth());
       Matrix<typL> ASub(A.getWidth(),A.getWidth());
       int index=0;
@@ -1176,7 +1183,7 @@ namespace mixedCells
 	if(dot(v,inequalities[i].toVector())<-0.0001)return false;
       return true;
       }*/
-    bool hasPointWithLastCoordinatePositiveInCone(Matrix<typL> &coneInequalitiesL, Vector<typR> &coneInequalitiesR, int oldNumberOfInequalities, int &newNumberOfInequalities, ReducerExact &reducer, Matrix<typL> &Inequalities, LPExact *&lp, bool quickExit=false)
+    bool hasPointWithLastCoordinatePositiveInCone(Matrix<typL> &coneInequalitiesL, Vector<typR> &coneInequalitiesR, int oldNumberOfInequalities, int &newNumberOfInequalities, ReducerExact &reducer/*, Matrix<typL> &Inequalities*/, LPExact *&lp, bool quickExit=false)
     {
       //cerr<<"----INCONE"<<endl;
       statistics.nLPs++;
@@ -1190,10 +1197,14 @@ namespace mixedCells
       if(reducer.hashedInconsistencyLookup(coneInequalitiesL,coneInequalitiesR,newNumberOfInequalities)){/*cerr<<"A";*/return false;}/*else cerr<<"B";*/
 #endif
       int newAffineDimension=reducer.newAffineDimension();
-      /*Matrix<typL>*/ Inequalities=coneInequalitiesL.submatrix(0,0,newNumberOfInequalities,newAffineDimension);
+      assert(coneInequalitiesL.getWidth()==newAffineDimension);
+      /*Matrix<typL>*/ //Inequalities=coneInequalitiesL.submatrix(0,0,newNumberOfInequalities,newAffineDimension);
       Vector<typR>  RightHandSide=-coneInequalitiesR.subvector(0,newNumberOfInequalities);//SINCE THE DUAL LP IS A MINIMIZING PROBLEM, BUT OUR IMPLEMENTATION IS MAX, WE CHANGE SIGN
 
-      lp=new LPExact(Inequalities,Vector<typL>(Inequalities.getWidth()));
+
+      lp=new LPExact(coneInequalitiesL,Vector<typL>(newAffineDimension));
+      //lp=new LPExact(Inequalities,Vector<typL>(Inequalities.getWidth()));
+      lp->setNumberOfRows(newNumberOfInequalities);
       lp->setObjectiveFunction(RightHandSide);
       lp->chooseRightHandSideToMakeFeasibleSolution();
       
@@ -1284,6 +1295,7 @@ namespace mixedCells
 	
 
 	LPExact lp(Inequalities,Vector<typL>(Inequalities.getWidth()));
+	lp.setNumberOfRows(Inequalities.getHeight());
 	lp.setObjectiveFunction(RightHandSide);
 	lp.chooseRightHandSideToMakeFeasibleSolution();
 	//	cerr<<lp;assert(0);
@@ -1856,7 +1868,7 @@ public:
 		    {
 		      bool knownToBeInfeasibleLP=false;
 		      bool knownToBeInfeasible=false;
-#if 0 //<-- enable simplex call here (to compute knowToBeInfeasibleLP)
+#if 1 //<-- enable simplex call here (to compute knowToBeInfeasibleLP)
 		      Matrix<LType> Inequalities;
 		       //Test using LP
 		      bool pushed=reducer.push(fans[i].cones[j].equationsL[0].toVector(),fans[i].cones[j].equationsR[0]);
@@ -1874,7 +1886,7 @@ public:
 				 (inequalityMatricesL[index],inequalityMatricesR[index],
 				  inequalityMatricesNumberOfUsedRows1[index],
 				  inequalityMatricesNumberOfUsedRows2[index],
-				  reducer,Inequalities,lp,true/*false*/))
+				  reducer,/*Inequalities,*/lp,true/*false*/))
 				{
 				  knownToBeInfeasibleLP=true;
 				}
@@ -1997,7 +2009,7 @@ public:
 			    inequalityMatricesNumberOfUsedRows1[index],
 			    inequalityMatricesNumberOfUsedRows2[index],
 			    reducer,
-			    Inequalities,
+			    /*Inequalities,*/
 			    lp))
 			  {			    
 #if CHECK			    
