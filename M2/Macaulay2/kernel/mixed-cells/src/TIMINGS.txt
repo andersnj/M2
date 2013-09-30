@@ -1,4 +1,4 @@
-cyclic11
+cyclyc10
 --------
 MixedVolume:35940
 Number of LPs solved:1523383
@@ -6,13 +6,27 @@ Number of recursive calls:305270
 Number of cells found:2829
 Number of feasible LPs:347904
 Number of combinatorially deduced infeasibilities:286
-Number of MizutaniTekedaKojima nodes:13609846
+Number of MizutaniTakedaKojima nodes:13609846
 Number of LP run nodes:2954937
 
-real	0m11.860s
-user	0m11.772s
-sys	0m0.008s
+real	0m11.754s
+user	0m11.660s
+sys	0m0.032s
 
+cyclic11
+--------
+MixedVolume:184756
+Number of LPs solved:14449322
+Number of recursive calls:2275894
+Number of cells found:12722
+Number of feasible LPs:2361798
+Number of combinatorially deduced infeasibilities:363
+Number of MizutaniTakedaKojima nodes:124474461
+Number of LP run nodes:27695867
+
+real	1m57.028s
+user	1m56.028s
+sys	0m0.112s
 
 cyclic12
 --------

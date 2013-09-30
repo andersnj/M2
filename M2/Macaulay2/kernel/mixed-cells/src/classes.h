@@ -1868,13 +1868,15 @@ public:
 	    if(!usedFans.get(i))
 	      {
 		BitSet candidates=computeCandidates(index,i);
-#ifndef USELPFORDYN
+#ifdef USELPFORDYN
 		for(int j=0;j<candidates.size();j++)
 		  if(candidates.get(j))
 		    {
 		      bool knownToBeInfeasibleLP=false;
 		      bool knownToBeInfeasible=false;
+		       
 #if 1 //<-- enable simplex call here (to compute knowToBeInfeasibleLP)
+      //(this chuck is used to debug "Kojima trick"; runs LP truncated at 40 steps) 
 		      Matrix<LType> Inequalities;
 		       //Test using LP
 		      bool pushed=reducer.push(fans[i].cones[j].equationsL[0].toVector(),fans[i].cones[j].equationsR[0]);

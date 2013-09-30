@@ -16,6 +16,8 @@ where
 
   HASH determines whether a lookup table for conditions with matching RHSs is used
 
+  USELPFORDYN, if set then "Kojima trick" is enabled
+
 for example
   g++ -O3 mixed-cells.cpp -lgmp -DDOUBLE_DOUBLE -DHASH=1
 
