@@ -214,6 +214,18 @@ std::ostream& operator<<(std::ostream& s, const IntegerVector &v)
   return s;
 }
 
+std::ostream& operator<<(std::ostream& s, std::vector<int> const &v)
+{
+  s<<"(";
+  for(int i=0;i<v.size();i++)
+    {
+      if(i!=0)s<<",";
+      s<<v[i];
+    }
+  s<<")";
+  return s;
+}
+
 namespace mixedCells
 {
   class Statistics
@@ -494,61 +506,9 @@ namespace mixedCells
   //  static unsigned char hashTable[256];
  mutable unsigned char hashTable[256];
 #endif
-  /**
-     This mehtod transforms the inequalities (rows of the matrix
-     [sourceL|sourceR]) to their normal forms modulo L by reducing
-     with the matrix representation of L, under the assumption that
-     the equations were already reduced by the first d-1 rows of the
-     matrix representation of L. Only coordinates with no pivots have
-     to be stored. Therefore, the input has n-d+1 coordinates for the
-     left handside, and 1 for the right hand side. The output has
-     only n-d coordinates for the left handside.
-
-     The output is stored in [destinationL|destinationR], but
-     starting at row destinationOffset. The two matrices (/vector)
-     must have been initialiazed to the right width, and with a
-     sufficient number of rows before calling.
-
-     If the normal form of an inequality turns out to be zero, then it
-     is not stored. The total number of stored inequalities is the
-     return value of the method unless if one of the inequalities is
-     inconsistent. In this case a -1 is returned. FIX DOCUMENTATION
-   */
-  int singleReduction(Matrix<typL> const &sourceL, Vector<typR> const &sourceR, int numberOfUsedRowsInSource, Matrix<typL> &destinationL, Vector<typR> &destinationR)
-  {
-    /*    cerr<<"------------++++++++++-----------"<<endl;
-    cerr<<*this;
-    cerr<<"Source"<<source;
-    cerr<<"Destination"<<destination;
-    cerr<<"NumberOfUsedRowsInSource"<<numberOfUsedRowsInSource<<endl;
-    */
-    //    cerr<<"n"<<n<<"d"<<d<<"dw"<<destination.getWidth()<<"sw"<<source.getWidth();
-    assert(d>0);
-    assert(destinationL.getWidth()==n-d);
-    assert(sourceL.getWidth()==n-d+1);
-
-#if HASH
-    memset(hashTable,255,256);
-#endif
-
-    if(pivotIndices[d-1]==n)//if we have a pivot on the right hand side then the system is already infeassible and there is no reason to add????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
-      {
-	return 0;
-      }
-
-    int numberOfPivotsBeforeCurrent=0;
-    for(int j=0;j<pivotIndices[d-1];j++)if(isPivot[j])numberOfPivotsBeforeCurrent++;
-    int J=0;
-    for(int j=0;j<n;j++)if((!isPivot[j])&&(j!=pivotIndices[d-1])){temp2L[J++]=mL[d-1][j];}
-    temp2R=mR[d-1];
-    int newPivotIndex=pivotIndices[d-1]-numberOfPivotsBeforeCurrent;
-
-    int ret=0;
-    for(int i=0;i<numberOfUsedRowsInSource;i++)
-      {
+ int singleSingleReduction(Matrix<typL> const &sourceL, Vector<typR> const &sourceR, Matrix<typL> &destinationL, Vector<typR> &destinationR, const int newPivotIndex, int ret, const int i)
+ {
     typL scalar=sourceL[i][newPivotIndex];
-
-
 
     if(1) // change to optimize code below
       {
@@ -558,6 +518,7 @@ namespace mixedCells
 	  destinationL[ret][j]=sourceL[i][j+1]-scalar*temp2L[j];
 	destinationR[ret]=sourceR[i]-scalar*temp2R;
       }
+
 #if 0
     else /* Here are various alternatives */
       {
@@ -636,6 +597,146 @@ namespace mixedCells
 #endif
 	    ret++;
 	  }
+	return ret; 
+}
+  /**
+     This mehtod transforms the inequalities (rows of the matrix
+     [sourceL|sourceR]) to their normal forms modulo L by reducing
+     with the matrix representation of L, under the assumption that
+     the equations were already reduced by the first d-1 rows of the
+     matrix representation of L. Only coordinates with no pivots have
+     to be stored. Therefore, the input has n-d+1 coordinates for the
+     left handside, and 1 for the right hand side. The output has
+     only n-d coordinates for the left handside.
+
+     The output is stored in [destinationL|destinationR], but
+     starting at row destinationOffset. The two matrices (/vector)
+     must have been initialiazed to the right width, and with a
+     sufficient number of rows before calling.
+
+     If the normal form of an inequality turns out to be zero, then it
+     is not stored. The total number of stored inequalities is the
+     return value of the method unless if one of the inequalities is
+     inconsistent. In this case a -1 is returned. FIX DOCUMENTATION
+   */
+ int singleReductionMakeBasisFirst(Matrix<typL> const &sourceL, Vector<typR> const &sourceR, int numberOfUsedRowsInSource, Matrix<typL> &destinationL, Vector<typR> &destinationR, vector<int> const &oldBasis, Matrix<typL> const &oldAinv/*, Matrix<typL> &newAinv*/)
+ {
+    /*    newAinv=Matrix<typL>(n-1,n-1);
+    int K=0;
+    for(int k=0;k<n;k++)
+      if(k!=..)
+	{
+	  int I=0;
+	  for(int i=0;i<n;i++)
+	    if(i!=a)
+	      {
+		newAinv[K][I]=Ainv[k][i]-x[i]/x[a]*Ainv[k][a];
+		I++;
+	      }
+	  K++;
+	}
+    */
+
+    assert(d>0);
+    assert(destinationL.getWidth()==n-d);
+    assert(sourceL.getWidth()==n-d+1);
+
+#if HASH
+    memset(hashTable,255,256);
+#endif
+
+    if(pivotIndices[d-1]==n)//if we have a pivot on the right hand side then the system is already infeassible and there is no reason to add????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+      {
+	return 0;
+      }
+
+    int numberOfPivotsBeforeCurrent=0;
+    for(int j=0;j<pivotIndices[d-1];j++)if(isPivot[j])numberOfPivotsBeforeCurrent++;
+    int J=0;
+    for(int j=0;j<n;j++)if((!isPivot[j])&&(j!=pivotIndices[d-1])){temp2L[J++]=mL[d-1][j];}
+    temp2R=mR[d-1];
+    int newPivotIndex=pivotIndices[d-1]-numberOfPivotsBeforeCurrent;
+
+
+//puts basis first
+    int nn=oldBasis.size();
+    Vector<typL> x(nn);
+    {
+      Vector<typL> temp3(nn);
+      int J=0;
+      for(int j=0;j<n;j++)if((!isPivot[j])||(j==pivotIndices[d-1])){temp3[J++]=mL[d-1][j];}
+      //We now reduce 
+      for(int i=0;i<nn;i++)x[i]=oldAinv.vectorDotJthColumn(temp3,i);
+    }
+      int a=0;
+    while(a<x.size())
+      {
+	if(!isZero(x[a]))break;
+	a++;
+      }
+    assert(a!=x.size());
+
+    //new basis will not contain a
+
+    //    cerr<<"OLDBASIS"<<oldBasis<<endl;
+    //    cerr<<"OLDBASIS";
+    //    cerr<<n;
+    //for(int i=0;i<oldBasis.size();i++)cerr<<","<<oldBasis[i];cerr<<endl;
+    int ret=0;
+    vector<bool> temp(numberOfUsedRowsInSource);
+    for(int i=0;i<temp.size();i++)temp[i]=false;
+    for(int i=0;i<nn;i++)
+      if(i!=a)
+	{
+	  ret=singleSingleReduction(sourceL,sourceR,destinationL,destinationR,newPivotIndex,ret,oldBasis[i]);
+	  temp[oldBasis[i]]=true;
+	  if(ret<0)return -1;//throw infeasibility result to parent
+	}
+    for(int i=0;i<numberOfUsedRowsInSource;i++)
+      if(!temp[i])
+      {
+	ret=singleSingleReduction(sourceL,sourceR,destinationL,destinationR,newPivotIndex,ret,i);
+	if(ret<0)return -1;//throw infeasibility result to parent
+      }
+    //for(int i=0;i<n;i++)
+      //      if(i!=a)
+    //cerr<<"Destination"<<destination;
+    return ret;
+  }
+ int singleReduction(Matrix<typL> const &sourceL, Vector<typR> const &sourceR, int numberOfUsedRowsInSource, Matrix<typL> &destinationL, Vector<typR> &destinationR)
+  {
+    /*    cerr<<"------------++++++++++-----------"<<endl;
+    cerr<<*this;
+    cerr<<"Source"<<source;
+    cerr<<"Destination"<<destination;
+    cerr<<"NumberOfUsedRowsInSource"<<numberOfUsedRowsInSource<<endl;
+    */
+    //    cerr<<"n"<<n<<"d"<<d<<"dw"<<destination.getWidth()<<"sw"<<source.getWidth();
+    assert(d>0);
+    assert(destinationL.getWidth()==n-d);
+    assert(sourceL.getWidth()==n-d+1);
+
+#if HASH
+    memset(hashTable,255,256);
+#endif
+
+    if(pivotIndices[d-1]==n)//if we have a pivot on the right hand side then the system is already infeassible and there is no reason to add????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+      {
+	return 0;
+      }
+
+    int numberOfPivotsBeforeCurrent=0;
+    for(int j=0;j<pivotIndices[d-1];j++)if(isPivot[j])numberOfPivotsBeforeCurrent++;
+    int J=0;
+    for(int j=0;j<n;j++)if((!isPivot[j])&&(j!=pivotIndices[d-1])){temp2L[J++]=mL[d-1][j];}
+    temp2R=mR[d-1];
+    int newPivotIndex=pivotIndices[d-1]-numberOfPivotsBeforeCurrent;
+
+    int ret=0;
+    for(int i=0;i<numberOfUsedRowsInSource;i++)
+      {
+	ret=singleSingleReduction(sourceL,sourceR,destinationL,destinationR,newPivotIndex,ret,i);
+	if(ret<0)return -1;//throw infeasibility result to parent
       }
     //cerr<<"Destination"<<destination;
     return ret;
@@ -864,38 +965,6 @@ namespace mixedCells
       //      assert(w.size()==w_.size());// Sizes do not have to match anymore
       www=&w_;
     }
-    void setCurrentBasis(vector<int> const &basis_)
-    {
-      basis=basis_;
-      inBasis=vector<bool>(d);//MALLOC
-      for(int i=0;i<d;i++)inBasis[i]=false;
-      for(int i=0;i<basis_.size();i++)
-	inBasis[basis[i]]=true;
-      //????
-    }
-    /*    LP buildLPForFeasibilityCheck()
-    {
-      LP ret=LP(combineOnTop(A,Matrix::identity(n)),c);
-      vector<int> basis;
-      for(int i=0;i<n;i++)basis.push_back(i+d);
-      ret.setCurrentBasis(basis);
-      Vector w(n+d);
-      //      for(int i=0;i<n;i++)w[d+i]=-1;
-      for(int i=0;i<n;i++)w[d+i]=-1;
-      ret.setObjectiveFunction(w);
-      ret.Ainv=Matrix::identity(n);
-      ret.y=concatenation(Vector(d),c);
-
-      for(int i=0;i<n;i++)
-	if(c[i]<0)
-	  {
-	    ret.y[d+i]*=-1;
-	    ret.A[A.getHeight()+i][i]=-1;
-	    ret.Ainv[i][i]=-1;
-	  }
-
-      return ret;
-      }*/
     friend std::ostream& operator<<(std::ostream& s, LP const &lp)
     {
       s<<"LP problem(d="<<lp.d<<")"<<endl;
@@ -1001,40 +1070,44 @@ namespace mixedCells
 
       return 1;
     }
-    /*    bool findFeasibleBasis()
+    void setBasisAndAinv(vector<int> const &newBasis, Matrix<typL> const &newAinv)
     {
-      LP A2=buildLPForFeasibilityCheck();
+      basis=newBasis;//MALLOC
+      c=Vector<typL> (A->getWidth());//MALLOC
+      inBasis=vector<bool>(d);//MALLOC
+      yValues=Vector<typL>(A->getWidth());
 
-      //      cerr<<A2;
+      for(int i=0;i<inBasis.size();i++)inBasis[i]=false;
 
-      int status;
-      do
+      for(int i=0;i<newBasis.size();i++)
 	{
-
-	  status=A2.step();
-	  if(debug) cerr<<"-----------------\n"<<A2;
+	  c+=(*A)[newBasis[i]].toVector();//MALLOC
+	  yValues[i]=1;
+	  inBasis[newBasis[i]]=true;
 	}
-      while(status==1);
-      //      fprintf(stderr,status?"LP is unbounded.\n":"Optimal solution found.\n");
-
-      vector<int> newBasis;
-      for(vector<int>::const_iterator i=A2.basis.begin();i!=A2.basis.end();i++)
-	{
-	  if(*i<d)
-	    {
-	      newBasis.push_back(*i);
-	      y[*i]=A2.y[*i];
-	    }
-	  else
-	    if(A2.y[*i]>0.0000001)return false;///!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	}
-
-      //      if(newBasis.size()!=n)return false;!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      setCurrentBasis(newBasis);
-      Ainv=A2.Ainv;
-      return true;
+      Ainv=newAinv;//MALLOC
+      updateAinvw();
     }
-    */
+    void setBasisAndComputeAinv(vector<int> const &newBasis)
+    {
+      basis=newBasis;//MALLOC
+      c=Vector<typL> (A->getWidth());//MALLOC
+      inBasis=vector<bool>(d);//MALLOC
+      yValues=Vector<typL>(A->getWidth());
+      Matrix<typL> ASub(A->getWidth(),A->getWidth());//MALLOC
+
+      for(int i=0;i<inBasis.size();i++)inBasis[i]=false;
+
+      for(int i=0;i<newBasis.size();i++)
+	{
+	  c+=(*A)[newBasis[i]].toVector();//MALLOC
+	  yValues[i]=1;
+	  inBasis[newBasis[i]]=true;
+	  ASub[i].set((*A)[newBasis[i]].toVector());//MALLOC
+	}
+      Ainv=ASub.inverse();//MALLOC
+      updateAinvw();
+    }
     void chooseRightHandSideToMakeFeasibleSolution()
     {
       assert(d>=0);
@@ -1044,7 +1117,7 @@ namespace mixedCells
       basis=vector<int>();//MALLOC
       inBasis=vector<bool>(d);//MALLOC
       yValues=Vector<typL>(A->getWidth());
-      Matrix<typL> ASub(A->getWidth(),A->getWidth());
+      Matrix<typL> ASub(A->getWidth(),A->getWidth());//MALLOC
       int index=0;
       for(int i=0;i<inBasis.size();i++)inBasis[i]=false;
       {
@@ -1052,15 +1125,15 @@ namespace mixedCells
 	int pivotJ=-1;
 	while(A2.nextPivot(pivotI,pivotJ))
 	  {
-	    c+=(*A)[pivotJ].toVector();
+	    c+=(*A)[pivotJ].toVector();//MALLOC
 	    yValues[index]=1;
 	    inBasis[pivotJ]=true;
-	    basis.push_back(pivotJ);
-	    ASub[index++].set((*A)[pivotJ].toVector());
+	    basis.push_back(pivotJ);//MALLOC
+	    ASub[index++].set((*A)[pivotJ].toVector());//MALLOC
 	  }
 	assert(Ainv.getHeight()==ASub.getHeight());
 	assert(Ainv.getWidth()==ASub.getWidth());
-	Ainv=ASub.inverse();
+	Ainv=ASub.inverse();//MALLOC
 	assert(Ainv.getHeight()==ASub.getHeight());
 	assert(Ainv.getWidth()==ASub.getWidth());
 	updateAinvw();
@@ -1071,6 +1144,8 @@ namespace mixedCells
 	  cerr<<"A2"<<A2<<endl;
 	  assert(0);
 	}
+      //    setBasisAndAinv(basis,Ainv);///Just for debugging
+      setBasisAndComputeAinv(basis);///Just for debugging
     }
   };
 
@@ -1183,7 +1258,7 @@ namespace mixedCells
 	if(dot(v,inequalities[i].toVector())<-0.0001)return false;
       return true;
       }*/
-    bool hasPointWithLastCoordinatePositiveInCone(Matrix<typL> &coneInequalitiesL, Vector<typR> &coneInequalitiesR, int oldNumberOfInequalities, int &newNumberOfInequalities, ReducerExact &reducer/*, Matrix<typL> &Inequalities*/, LPExact &lp, bool quickExit=false)//coneInequalitiesL/R must survive until lp is destroyed
+    bool hasPointWithLastCoordinatePositiveInCone(Matrix<typL> &coneInequalitiesL, Vector<typR> &coneInequalitiesR, int oldNumberOfInequalities, int &newNumberOfInequalities, ReducerExact &reducer/*, Matrix<typL> &Inequalities*/, LPExact &lp, bool quickExit=false, bool firstEntriesFormBasis=false)//coneInequalitiesL/R must survive until lp is destroyed
     {
       //cerr<<"----INCONE"<<endl;
       statistics.nLPs++;
@@ -1206,8 +1281,12 @@ namespace mixedCells
       //lp=new LPExact(Inequalities,Vector<typL>(Inequalities.getWidth()));
       lp.setNumberOfRows(newNumberOfInequalities);
       lp.setObjectiveFunction(coneInequalitiesR/*RightHandSide*/);
-      lp.chooseRightHandSideToMakeFeasibleSolution();
-      
+      //      lp.chooseRightHandSideToMakeFeasibleSolution();
+      {
+	vector<int> newBasis;
+	for(int i=0;i<newAffineDimension;i++)newBasis.push_back(i);
+	lp.setBasisAndComputeAinv(newBasis);
+      }      
       // cerr<<reducer;
       // cerr<<*this<<coneInequalitiesL<<coneInequalitiesR<<oldNumberOfInequalities<<newNumberOfInequalities<<endl;
       // cerr<<"INCONE"<<lp;
@@ -1974,7 +2053,7 @@ public:
 	nCandidates[index]=bestNumberOfCandidates;//just for printing
 
 	static int iterationNumber;
-	if(1)	if(!(iterationNumber++ & (16*256-1)))
+	if(0)	if(!(iterationNumber++ & (16*256-1)))
 	  //	  log2
 	  	{
 	  fprintf(stderr,"Iteration level:%i, Chosen fan:%i, Number of candidates:%i, Iteration Number:%i, Useful (%i/%i)=%f\n",index,bestIndex,bestNumberOfCandidates,iterationNumber,numberOfUsefulCalls,totalNumberOfCalls,float(numberOfUsefulCalls)/totalNumberOfCalls);
@@ -2006,7 +2085,11 @@ public:
 		  if(pushed)
 		    {
 		      int numberOfAddedInequalities=0;
-		      if(index!=0)inequalityMatricesNumberOfUsedRows1[index]=numberOfAddedInequalities=reducer.singleReduction(inequalityMatricesL[index-1],inequalityMatricesR[index-1],inequalityMatricesNumberOfUsedRows2[index-1],inequalityMatricesL[index],inequalityMatricesR[index]);
+		      if(index!=0)
+			{
+			  //			  inequalityMatricesNumberOfUsedRows1[index]=numberOfAddedInequalities=reducer.singleReduction(inequalityMatricesL[index-1],inequalityMatricesR[index-1],inequalityMatricesNumberOfUsedRows2[index-1],inequalityMatricesL[index],inequalityMatricesR[index]);
+			  inequalityMatricesNumberOfUsedRows1[index]=numberOfAddedInequalities=reducer.singleReductionMakeBasisFirst(inequalityMatricesL[index-1],inequalityMatricesR[index-1],inequalityMatricesNumberOfUsedRows2[index-1],inequalityMatricesL[index],inequalityMatricesR[index],/*OLDBASIS*/lpList[index-1].basis,/*OLDAINV*/lpList[index-1].Ainv);
+			}
 
 		      Matrix<LType> Inequalities;
 		      //LPExact lp(inequalityMatricesL[index]);
@@ -2017,7 +2100,7 @@ public:
 			    inequalityMatricesNumberOfUsedRows2[index],
 			    reducer,
 			    /*Inequalities,*/
-			    lpList[index]))
+			    lpList[index],false,index!=0))
 			  {			    
 #if CHECK			    
 			    if(haveEmptyIntersection(current,fans[chosenFans[index]].cones[i],&reducer))
