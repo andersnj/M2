@@ -973,7 +973,8 @@ namespace mixedCells
       yValues(A_.getWidth(),false),
       edgeCandidateValues(A_.getWidth(),false),
       Ainvw(A_.getWidth(),false),
-      inBasis(A_.getHeight())
+      inBasis(A_.getHeight()),
+      basis(A_.getWidth())
 	{
 	  d=-1;
 	  //      d=A.getHeight();
@@ -1095,9 +1096,16 @@ namespace mixedCells
 
       return 1;
     }
+  private:
+    void setBasis(vector<int> const &newBasis)
+    {
+      assert(newBasis.size()==basis.size());
+      for(int i=0;i<basis.size();i++)basis[i]=newBasis[i];
+    }
+  public:
     void setBasisAndAinv(vector<int> const &newBasis, Matrix<typL> const &newAinv)
     {
-      basis=newBasis;//MALLOC
+      setBasis(newBasis);
       c=Vector<typL> (A->getWidth());//MALLOC
       yValues=Vector<typL>(A->getWidth());
 
@@ -1114,7 +1122,7 @@ namespace mixedCells
     }
     void setBasisAndComputeAinv(vector<int> const &newBasis)
     {
-      basis=newBasis;//MALLOC
+      setBasis(newBasis);
       c=Vector<typL> (A->getWidth());//MALLOC
       yValues=Vector<typL>(A->getWidth());
       Matrix<typL> ASub(A->getWidth(),A->getWidth());//MALLOC
@@ -1140,7 +1148,7 @@ namespace mixedCells
       Matrix<typL> A2=A->transposed();//MALLOC
       c=Vector<typL> (A->getWidth());//MALLOC
       A2.reduce(false);
-      basis=vector<int>();//MALLOC
+      int basisI=0;
       yValues=Vector<typL>(A->getWidth());
       Matrix<typL> ASub(A->getWidth(),A->getWidth());//MALLOC
       int index=0;
@@ -1153,7 +1161,7 @@ namespace mixedCells
 	    c+=(*A)[pivotJ].toVector();//MALLOC
 	    yValues[index]=1;
 	    inBasis[pivotJ]=true;
-	    basis.push_back(pivotJ);//MALLOC
+	    basis[basisI++]=pivotJ;
 	    ASub[index++].set((*A)[pivotJ].toVector());//MALLOC
 	  }
 	assert(Ainv.getHeight()==ASub.getHeight());
@@ -1170,7 +1178,7 @@ namespace mixedCells
 	  assert(0);
 	}
       //    setBasisAndAinv(basis,Ainv);///Just for debugging
-      setBasisAndComputeAinv(basis);///Just for debugging
+      //      setBasisAndComputeAinv(basis);///Just for debugging
     }
   };
 
