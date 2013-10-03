@@ -619,7 +619,7 @@ namespace mixedCells
      return value of the method unless if one of the inequalities is
      inconsistent. In this case a -1 is returned. FIX DOCUMENTATION
    */
- int singleReductionMakeBasisFirst(Matrix<typL> const &sourceL, Vector<typR> const &sourceR, int numberOfUsedRowsInSource, Matrix<typL> &destinationL, Vector<typR> &destinationR, vector<int> const &oldBasis, Matrix<typL> const &oldAinv/*, Matrix<typL> &newAinv*/)
+ int singleReductionMakeBasisFirst(Matrix<typL> const &sourceL, Vector<typR> const &sourceR, int numberOfUsedRowsInSource, Matrix<typL> &destinationL, Vector<typR> &destinationR, vector<int> const &oldBasis, Matrix<typL> const &oldAinv, Matrix<typL> &newAinv)
  {
     /*    newAinv=Matrix<typL>(n-1,n-1);
     int K=0;
@@ -677,6 +677,30 @@ namespace mixedCells
     assert(a!=x.size());
 
     //new basis will not contain a
+
+    //compute new Ainv:
+    {
+      //      cerr<<oldAinv;
+      assert(newAinv.getHeight()==nn-1);
+      assert(newAinv.getWidth()==nn-1);
+      //, Matrix<typL> &newAinv      
+      //      Matrix<typL> newAinv(nn-1,nn-1);
+      int K=0;
+      for(int k=0;k<nn;k++)
+	if(k!=newPivotIndex)
+	  {
+	    int I=0;
+	    for(int i=0;i<nn;i++)
+	      if(i!=a)
+		{
+		  newAinv[K][I]=oldAinv[k][i]-x[i]/x[a]*oldAinv[k][a];
+		  I++;
+		}
+	    K++;
+	  }
+      //      cerr<<"NewAinv"<<newAinv;
+    }
+
 
     //    cerr<<"OLDBASIS"<<oldBasis<<endl;
     //    cerr<<"OLDBASIS";
@@ -1106,6 +1130,9 @@ namespace mixedCells
 	  ASub[i].set((*A)[newBasis[i]].toVector());//MALLOC
 	}
       Ainv=ASub.inverse();//MALLOC
+
+      //      {static int a;a++;if((a&255)==0)cerr<<"Computed via Gauss:"<<Ainv;}
+
       updateAinvw();
     }
     void chooseRightHandSideToMakeFeasibleSolution()
@@ -1258,7 +1285,7 @@ namespace mixedCells
 	if(dot(v,inequalities[i].toVector())<-0.0001)return false;
       return true;
       }*/
-    bool hasPointWithLastCoordinatePositiveInCone(Matrix<typL> &coneInequalitiesL, Vector<typR> &coneInequalitiesR, int oldNumberOfInequalities, int &newNumberOfInequalities, ReducerExact &reducer/*, Matrix<typL> &Inequalities*/, LPExact &lp, bool quickExit=false, bool firstEntriesFormBasis=false)//coneInequalitiesL/R must survive until lp is destroyed
+    bool hasPointWithLastCoordinatePositiveInCone(Matrix<typL> &coneInequalitiesL, Vector<typR> &coneInequalitiesR, int oldNumberOfInequalities, int &newNumberOfInequalities, ReducerExact &reducer/*, Matrix<typL> &Inequalities*/, LPExact &lp, bool quickExit/*=false*/, Matrix<typL> *Ainv/*if this is not null, then basis of A is the first entries */)//coneInequalitiesL/R must survive until lp is destroyed
     {
       //cerr<<"----INCONE"<<endl;
       statistics.nLPs++;
@@ -1282,11 +1309,16 @@ namespace mixedCells
       lp.setNumberOfRows(newNumberOfInequalities);
       lp.setObjectiveFunction(coneInequalitiesR/*RightHandSide*/);
       //      lp.chooseRightHandSideToMakeFeasibleSolution();
+      if(Ainv)
       {
 	vector<int> newBasis;
 	for(int i=0;i<newAffineDimension;i++)newBasis.push_back(i);
-	lp.setBasisAndComputeAinv(newBasis);
+	//lp.setBasisAndComputeAinv(newBasis);
+	lp.setBasisAndAinv(newBasis,*Ainv);
       }      
+      else
+	lp.chooseRightHandSideToMakeFeasibleSolution();
+
       // cerr<<reducer;
       // cerr<<*this<<coneInequalitiesL<<coneInequalitiesR<<oldNumberOfInequalities<<newNumberOfInequalities<<endl;
       // cerr<<"INCONE"<<lp;
@@ -1771,6 +1803,7 @@ struct RecursionData
   int numberOfUsefulCalls;
   int totalNumberOfCalls;
   ReducerExact reducer;
+  vector<Matrix<LType> > AinvList;//For all levels but possibly the first, this will contain the inverse of the first squarematrix of inequalityMatricesL
 public:
   RelationTable table;
   int cellVolume()
@@ -1813,6 +1846,7 @@ public:
       {
 	inequalityMatricesL.push_back(Matrix<LType>(min((i+1)*maximalNumberOfInequalities,totalNumberOfInequalities),ambientDimension-i-1-1));
 	inequalityMatricesR.push_back(Vector<RType>(min((i+1)*maximalNumberOfInequalities,totalNumberOfInequalities)));
+	AinvList.push_back(Matrix<LType>(ambientDimension-i-1-1,ambientDimension-i-1-1));
       }
     for(int i=0;i<ambientDimension-1;i++)
       {
@@ -1973,7 +2007,7 @@ public:
 				 (inequalityMatricesL[index],inequalityMatricesR[index],
 				  inequalityMatricesNumberOfUsedRows1[index],
 				  inequalityMatricesNumberOfUsedRows2[index],
-				  reducer,/*Inequalities,*/lpList[index],true/*false*/))
+				  reducer,/*Inequalities,*/lpList[index],true,0/*false*/))
 				{
 				  knownToBeInfeasibleLP=true;
 				}
@@ -2088,7 +2122,7 @@ public:
 		      if(index!=0)
 			{
 			  //			  inequalityMatricesNumberOfUsedRows1[index]=numberOfAddedInequalities=reducer.singleReduction(inequalityMatricesL[index-1],inequalityMatricesR[index-1],inequalityMatricesNumberOfUsedRows2[index-1],inequalityMatricesL[index],inequalityMatricesR[index]);
-			  inequalityMatricesNumberOfUsedRows1[index]=numberOfAddedInequalities=reducer.singleReductionMakeBasisFirst(inequalityMatricesL[index-1],inequalityMatricesR[index-1],inequalityMatricesNumberOfUsedRows2[index-1],inequalityMatricesL[index],inequalityMatricesR[index],/*OLDBASIS*/lpList[index-1].basis,/*OLDAINV*/lpList[index-1].Ainv);
+			  inequalityMatricesNumberOfUsedRows1[index]=numberOfAddedInequalities=reducer.singleReductionMakeBasisFirst(inequalityMatricesL[index-1],inequalityMatricesR[index-1],inequalityMatricesNumberOfUsedRows2[index-1],inequalityMatricesL[index],inequalityMatricesR[index],/*OLDBASIS*/lpList[index-1].basis,/*OLDAINV*/lpList[index-1].Ainv,AinvList[index]);
 			}
 
 		      Matrix<LType> Inequalities;
@@ -2100,7 +2134,7 @@ public:
 			    inequalityMatricesNumberOfUsedRows2[index],
 			    reducer,
 			    /*Inequalities,*/
-			    lpList[index],false,index!=0))
+			    lpList[index],false,(index!=0)?&(AinvList[index]):0))
 			  {			    
 #if CHECK			    
 			    if(haveEmptyIntersection(current,fans[chosenFans[index]].cones[i],&reducer))
