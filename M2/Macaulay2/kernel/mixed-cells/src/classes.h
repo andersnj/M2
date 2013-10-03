@@ -800,9 +800,7 @@ namespace mixedCells
 	unsigned char h=mL.hashValueOfNegative(i,nMinusD);
 	if(hashTable[h]!=255)
 	  {
-	    Vector<typL> sumL=mL[i].toVector();
-	    sumL+=mL[hashTable[h]].toVector();
-	    if(sumL.isZero())if(isNegative(mR[i]+mR[hashTable[h]]))return true;
+	    if(mL.rowsAreOpposite(i,hashTable[h],mL.getWidth()))if(isNegative(mR[i]+mR[hashTable[h]]))return true;
 	  }
       }
     return false;
@@ -1100,11 +1098,30 @@ namespace mixedCells
       assert(newBasis.size()==basis.size());
       for(int i=0;i<basis.size();i++)basis[i]=newBasis[i];
     }
+    void clearYValues()
+    {
+      for(int i=0;i<yValues.size();i++)yValues[i]=0;
+    }
   public:
+    void setTrivialBasisAndAinv(Matrix<typL> const &newAinv)
+    {
+      for(int i=0;i<basis.size();i++)basis[i]=i;
+      clearYValues();
+
+      for(int i=0;i<d;i++)inBasis[i]=false;
+
+      for(int i=0;i<basis.size();i++)
+	{
+	  yValues[i]=1;
+	  inBasis[basis[i]]=true;
+	}
+      Ainv=newAinv;//MALLOC
+      updateAinvw();
+    }
     void setBasisAndAinv(vector<int> const &newBasis, Matrix<typL> const &newAinv)
     {
       setBasis(newBasis);
-      yValues=Vector<typL>(A->getWidth());
+      clearYValues();
 
       for(int i=0;i<d;i++)inBasis[i]=false;
 
@@ -1119,7 +1136,7 @@ namespace mixedCells
     void setBasisAndComputeAinv(vector<int> const &newBasis)
     {
       setBasis(newBasis);
-      yValues=Vector<typL>(A->getWidth());
+      clearYValues();
       Matrix<typL> ASub(A->getWidth(),A->getWidth());//MALLOC
 
       for(int i=0;i<d;i++)inBasis[i]=false;
@@ -1142,7 +1159,7 @@ namespace mixedCells
       Matrix<typL> A2=A->transposed();//MALLOC
       A2.reduce(false);
       int basisI=0;
-      yValues=Vector<typL>(A->getWidth());
+      clearYValues();
       Matrix<typL> ASub(A->getWidth(),A->getWidth());//MALLOC
       int index=0;
       for(int i=0;i<d;i++)inBasis[i]=false;
@@ -1309,10 +1326,10 @@ namespace mixedCells
       //      lp.chooseRightHandSideToMakeFeasibleSolution();
       if(Ainv)
       {
-	vector<int> newBasis;
-	for(int i=0;i<newAffineDimension;i++)newBasis.push_back(i);
+	//	vector<int> newBasis;
+	//for(int i=0;i<newAffineDimension;i++)newBasis.push_back(i);
 	//lp.setBasisAndComputeAinv(newBasis);
-	lp.setBasisAndAinv(newBasis,*Ainv);
+	lp.setTrivialBasisAndAinv(*Ainv);
       }      
       else
 	lp.chooseRightHandSideToMakeFeasibleSolution();
@@ -2144,10 +2161,10 @@ public:
 #endif
 			    chosen[index]=i;
 			    
-			    Cone<LType,RType>  next=intersection(current,fans[chosenFans[index]].cones[i]/*,true*/);
+			    //Cone<LType,RType>  next=intersection(current,fans[chosenFans[index]].cones[i]/*,true*/);
 			    //if(index==3)next.removeRedundantInequalities();//<----------What is the best level for optimizing?
 			    {
-			      mixedVolumeAccumulator+=rek(index+1,next,&(lpList[index]));
+			      mixedVolumeAccumulator+=rek(index+1,/*next*/current,&(lpList[index]));
 			    }
 			    chosen[index]=-1;//just for printing
 			  }

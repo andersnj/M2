@@ -606,6 +606,7 @@ template <class typ> class Matrix{
   return ret;
 }
 
+
   MY_INLINE void swapRows(int a, int b)
   {for(int j=0;j<getWidth();j++){typ temp=(*this)[a][j];(*this)[a][j]=(*this)[b][j];(*this)[b][j]=temp;}}
   /*{
@@ -866,13 +867,23 @@ template <class typ> class Matrix{
     return ret+(ret>>24)+(ret>>16)+(ret>>8);
   }
 #endif
-  bool rowsAreEqual(int row1, int row2, int numberOfEntriesToConsider)
+  bool rowsAreEqual(int row1, int row2, int numberOfEntriesToConsider)const
   {
     typ *r1=data+row1*width;
     typ *r2=data+row2*width;
     for(int i=0;i<numberOfEntriesToConsider;i++)
       {
 	if(!isZero(r1[i]-r2[i]))return false;
+      }
+    return true;
+  }
+  bool rowsAreOpposite(int row1, int row2, int numberOfEntriesToConsider)const
+  {
+    typ *r1=data+row1*width;
+    typ *r2=data+row2*width;
+    for(int i=0;i<numberOfEntriesToConsider;i++)
+      {
+	if(!isZero(r1[i]+r2[i]))return false;
       }
     return true;
   }
