@@ -825,6 +825,8 @@ namespace mixedCells
   min <w,y> subject to 
   yA=c
   y>=0
+
+  The c vector does not have to be stored.
  */
 namespace mixedCells
 {
@@ -839,7 +841,6 @@ namespace mixedCells
     Matrix<typL> const *A;
     Matrix<typL> Ainv;
     Vector<typR> Ainvw;
-    Vector<typL> c;
     Vector<typR> const *www;
     Vector<typL> yValues;
     Vector<typL> edgeCandidateValues;
@@ -967,7 +968,6 @@ namespace mixedCells
      */
   LP(Matrix<typL> const &A_):
     A(&A_),
-      c(Vector<typL>(A_.getWidth())),
       www(0),
       Ainv(A_.getWidth(),A_.getWidth()),
       yValues(A_.getWidth(),false),
@@ -979,7 +979,6 @@ namespace mixedCells
 	  d=-1;
 	  //      d=A.getHeight();
 	  n=A->getWidth();
-	  assert(n==c.size());
 	}
     
     void setNumberOfRows(int d_)
@@ -996,7 +995,6 @@ namespace mixedCells
       s<<"LP problem(d="<<lp.d<<")"<<endl;
       s<<"A="<<lp.A<<endl;
       
-      s<<"c="<<lp.c;
       s<<"w="<<(*lp.www)<<endl;
       s<<"yValues="<<lp.yValues<<endl;
       /*      {
@@ -1106,14 +1104,12 @@ namespace mixedCells
     void setBasisAndAinv(vector<int> const &newBasis, Matrix<typL> const &newAinv)
     {
       setBasis(newBasis);
-      c=Vector<typL> (A->getWidth());//MALLOC
       yValues=Vector<typL>(A->getWidth());
 
       for(int i=0;i<d;i++)inBasis[i]=false;
 
       for(int i=0;i<newBasis.size();i++)
 	{
-	  c+=(*A)[newBasis[i]].toVector();//MALLOC
 	  yValues[i]=1;
 	  inBasis[newBasis[i]]=true;
 	}
@@ -1123,7 +1119,6 @@ namespace mixedCells
     void setBasisAndComputeAinv(vector<int> const &newBasis)
     {
       setBasis(newBasis);
-      c=Vector<typL> (A->getWidth());//MALLOC
       yValues=Vector<typL>(A->getWidth());
       Matrix<typL> ASub(A->getWidth(),A->getWidth());//MALLOC
 
@@ -1131,7 +1126,6 @@ namespace mixedCells
 
       for(int i=0;i<newBasis.size();i++)
 	{
-	  c+=(*A)[newBasis[i]].toVector();//MALLOC
 	  yValues[i]=1;
 	  inBasis[newBasis[i]]=true;
 	  ASub[i].set((*A)[newBasis[i]].toVector());//MALLOC
@@ -1146,7 +1140,6 @@ namespace mixedCells
     {
       assert(d>=0);
       Matrix<typL> A2=A->transposed();//MALLOC
-      c=Vector<typL> (A->getWidth());//MALLOC
       A2.reduce(false);
       int basisI=0;
       yValues=Vector<typL>(A->getWidth());
@@ -1158,7 +1151,6 @@ namespace mixedCells
 	int pivotJ=-1;
 	while(A2.nextPivot(pivotI,pivotJ))
 	  {
-	    c+=(*A)[pivotJ].toVector();//MALLOC
 	    yValues[index]=1;
 	    inBasis[pivotJ]=true;
 	    basis[basisI++]=pivotJ;
