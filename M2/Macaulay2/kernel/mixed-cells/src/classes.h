@@ -897,6 +897,16 @@ namespace mixedCells
       // cerr << "A " << A;
       for(int j=0;j<basis.size();j++)
 	edgeCandidateValues[j]=-(*A).rowDotColumnOfOther(i,Ainv,j);
+
+      /*      {static int a;
+	a++;
+	if((a&(257*255))==0){cerr<<edgeCandidateValues<<endl;
+	  cerr<<edgeCandidateOneEntry<<endl;
+	  //	  cerr<<Ainv;
+	  //cerr<<basis;
+	  for(int i=0;i<basis.size();i++)cerr<<","<<basis[i];cerr<<endl;
+	  cerr<<*A;cerr<<*www;}
+	  }*/
     }
     bool isImprovingDirection(int i)//const//i is non-basis
     {
@@ -1318,7 +1328,7 @@ namespace mixedCells
       //cerr<<"ADDED:"<<numberOfAddedInequalities<<endl;
       if(numberOfAddedInequalities<0)return false;
 
-      //    {static int n;n++;if((n&1023)==0)cerr<<coneInequalitiesL<<"used"<<oldNumberOfInequalities<<"+"<<numberOfAddedInequalities<<endl;}
+      //  {static int n;n++;if((n&1023)==0)cerr<<coneInequalitiesL<<"used"<<oldNumberOfInequalities<<"+"<<numberOfAddedInequalities<<endl;}
 
       newNumberOfInequalities=oldNumberOfInequalities+numberOfAddedInequalities;
 
@@ -2152,15 +2162,12 @@ public:
 			  inequalityMatricesNumberOfUsedRows1[index]=numberOfAddedInequalities=reducer.singleReductionMakeBasisFirst(inequalityMatricesL[index-1],inequalityMatricesR[index-1],inequalityMatricesNumberOfUsedRows2[index-1],inequalityMatricesL[index],inequalityMatricesR[index],/*OLDBASIS*/lpList[index-1].basis,/*OLDAINV*/lpList[index-1].Ainv,AinvList[index]);
 			}
 
-		      Matrix<LType> Inequalities;
-		      //LPExact lp(inequalityMatricesL[index]);
 		      if(numberOfAddedInequalities>=0)
 			if(fans[chosenFans[index]].cones[i].hasPointWithLastCoordinatePositiveInCone
 			   (inequalityMatricesL[index],inequalityMatricesR[index],
 			    inequalityMatricesNumberOfUsedRows1[index],
 			    inequalityMatricesNumberOfUsedRows2[index],
 			    reducer,
-			    /*Inequalities,*/
 			    lpList[index],false,(index!=0)?&(AinvList[index]):0))
 			  {			    
 #if CHECK			    

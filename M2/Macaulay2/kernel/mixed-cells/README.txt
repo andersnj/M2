@@ -34,7 +34,18 @@ g++ -O3 mixed-cells.cpp -pg
 ./a.out ../demicsExamples/cyclic11.dat
 gprof >gprof.output 
 
+To profile with oprofile compile with
+g++ -O3 -DNDEBUG mixed-cells.cpp -lgmp -DDOUBLE_DOUBLE -DHASH=1 -D__assert_fail=__assert_fail2 -DSTACKDUMP_ENABLED -rdynamic
 
+To profile with oprofile
+sudo opcontrol --deinit
+sudo opcontrol --init
+sudo opcontrol --reset
+sudo opcontrol --callgraph=40
+sudo opcontrol --start
+sudo opcontrol --stop
+sudo opcontrol --dump
+opreport -cgf | gprof2dot.py -f oprofile -s | dot -Tpng -o output.png
 
 How to use etags:
 

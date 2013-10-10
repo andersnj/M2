@@ -847,12 +847,13 @@ template <class typ> class Matrix{
   /**
      We use the second int word of the data, since typ most likely is a double, and the interesting part of a 64bit double happens in those 32 bit.
    */
+#define HASHMASK 0xffffffff
   MY_INLINE unsigned char hashValue(int row, int numberOfEntriesToConsider)const
   {
     int ret=0;
     typ *d=data+row*width;
     for(int i=0;i<numberOfEntriesToConsider;i++)
-      ret=((int*)(d+i))[1]+(ret>>7)+(ret<<25);
+      ret=(((int*)(d+i))[1]&HASHMASK)+(ret>>7)/*+(ret<<15)*/;
     return ret+(ret>>24)+(ret>>16)+(ret>>8);
   }
   MY_INLINE unsigned char hashValueOfNegative(int row, int numberOfEntriesToConsider)const
@@ -862,7 +863,7 @@ template <class typ> class Matrix{
     for(int i=0;i<numberOfEntriesToConsider;i++)
       {
 	typ temp=-d[i];
-	ret=((int*)(&temp))[1]+(ret>>7)+(ret<<25);
+	ret=(((int*)(&temp))[1]&HASHMASK)+(ret>>7)/*+(ret<<15)*/;
       }
     return ret+(ret>>24)+(ret>>16)+(ret>>8);
   }
