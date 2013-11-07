@@ -115,7 +115,9 @@ public:
   */
   typ& operator[](int n)
     {
+#ifndef NDEBUG
       if(!(n>=0 && n<length))outOfRange(n,length);
+#endif
       return (data[n]);
     }
   const typ& operator[](int n)const{assert(n>=0 && n<length);return (data[n]);}
