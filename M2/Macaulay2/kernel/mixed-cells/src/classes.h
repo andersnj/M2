@@ -353,7 +353,7 @@ namespace mixedCells
 
   //Temporaries
   //  vector<Vector<typL> > xVectors;
-  vector<bool> temp;
+  vector</*bool*/char> temp;//bools are stored as bits, which makes them slow to look up
  public:
   Reducer(int n_):
     n(n_),
@@ -564,6 +564,7 @@ __attribute__ ((noinline))
      return value of the method unless if one of the inequalities is
      inconsistent. In this case a -1 is returned. FIX DOCUMENTATION
    */
+__attribute__ ((noinline))
   int reduction(Matrix<typL> const &sourceL, Vector<typR> const sourceR, Matrix<typL> &destinationL, Vector<typR> &destinationR, int destinationOffset)
   {
     /*    cerr<<"-----------------------"<<endl;
@@ -641,6 +642,7 @@ __attribute__ ((noinline))
   //  static unsigned char hashTable[256];
  mutable unsigned char hashTable[256];
 #endif
+__attribute__ ((noinline))
  int singleSingleReduction(Matrix<typL> const &sourceL, Vector<typR> const &sourceR, Matrix<typL> &destinationL, Vector<typR> &destinationR, const int newPivotIndex, int ret, const int i)
  {
     typL scalar=sourceL[i][newPivotIndex];
@@ -651,6 +653,12 @@ __attribute__ ((noinline))
 	  destinationL[ret][j]=sourceL[i][j]-scalar*temp2L[j];
 	for(int j=newPivotIndex;j<n-d;j++)
 	  destinationL[ret][j]=sourceL[i][j+1]-scalar*temp2L[j];
+	destinationR[ret]=sourceR[i]-scalar*temp2R;
+      }
+    else
+      {
+	for(int j=0;j<n-d;j++)
+	  destinationL[ret][j]=sourceL[i][j+(j>=newPivotIndex)]-scalar*temp2L[j];
 	destinationR[ret]=sourceR[i]-scalar*temp2R;
       }
 
@@ -712,12 +720,26 @@ __attribute__ ((noinline))
     //	for(int j=0;j<n-d;j++)if(!m.isZero(destination[ret][j])){leftHandSideZero=false;break;}
     assert(destinationL.getWidth()==n-d);
     bool leftHandSideZero=destinationL[ret].isZero();
-	if(leftHandSideZero)
+    if(leftHandSideZero)
 	  {
-	    if(isNegative(destinationR[ret]/*[n-d]*/))return -1;//infeasible
+	    if(isNegative(destinationR[ret]))return -1;//infeasible
 	  }
 	else
 	  {
+	    if(0)
+	      {//this does not work because also Ainv needs to be scaled??
+	      //	      cerr<<ret;
+	      //cerr<<destinationL;
+	      //scale row
+	      int j=0;
+	      for(;j<destinationL.getWidth();j++)if(!isZero2(destinationL.data[destinationL.getWidth()*ret+j]))break;
+	      typL multiplier=1/destinationL.data[destinationL.getWidth()*ret+j];
+	      if(isNegative(multiplier))multiplier=-multiplier;
+	      destinationL.scaleRow(ret,multiplier);
+	      destinationR[ret]=multiplier*destinationR[ret];
+	      //	      cerr<<destinationL;
+	    }
+
 #if HASH
 	    assert(destinationL.getWidth()==n-d);
 	    unsigned char h=destinationL.hashValue(ret,n-d);
@@ -734,6 +756,111 @@ __attribute__ ((noinline))
 	  }
 	return ret; 
 }
+
+//__attribute__ ((inline))
+  int inner(int N,int ret, Matrix<typL> const &sourceL, Vector<typR> const &sourceR, int numberOfUsedRowsInSource, Matrix<typL> &destinationL, Vector<typR> &destinationR, int retmul, int imul)
+ {
+   for(int i=0;i<numberOfUsedRowsInSource;i++,imul+=sourceL.getWidth())
+     if(__builtin_expect(!temp[i],true))
+       {
+	 //	 typL sum=0;
+	 typL scalar=sourceL.data[imul];
+	 for(int j=0;j<N;j++)
+	   /*sum+=*/destinationL.data[retmul+j]=sourceL.data[imul+j+1]-scalar*temp2L[j];
+	 destinationR[ret]=sourceR[i]-scalar*temp2R;
+	 
+	 bool leftHandSideZero=/*isZero(sum)&&*/destinationL[ret].isZero();
+	 if(leftHandSideZero)
+	   {if(isNegative(destinationR[ret]))return -1;}//infeasible
+	 else
+	   {
+	     ret++;retmul+=destinationL.getWidth();
+	   }
+       }
+   return ret;
+ }
+__attribute__ ((noinline))
+ int theLoop(int ret, int newPivotIndex, Matrix<typL> const &sourceL, Vector<typR> const &sourceR, int numberOfUsedRowsInSource, Matrix<typL> &destinationL, Vector<typR> &destinationR)
+ {
+   int retmul=ret*destinationL.getWidth();
+   int imul=0;
+
+   if(__builtin_expect(newPivotIndex==0,true))
+     {
+       int N=n-d;
+       switch(N)
+	 {
+	   /*	 case 0:
+	   return inner(0,ret,sourceL,sourceR,numberOfUsedRowsInSource, destinationL, destinationR,retmul,imul);
+	   break;*/
+	 case 1:
+	   return inner(1,ret,sourceL,sourceR,numberOfUsedRowsInSource, destinationL, destinationR,retmul,imul);
+	   break;
+	 case 2:
+	   return inner(2,ret,sourceL,sourceR,numberOfUsedRowsInSource, destinationL, destinationR,retmul,imul);
+	   break;
+	 case 3:
+	   return inner(3,ret,sourceL,sourceR,numberOfUsedRowsInSource, destinationL, destinationR,retmul,imul);
+	   break;
+	 case 4:
+	   return inner(4,ret,sourceL,sourceR,numberOfUsedRowsInSource, destinationL, destinationR,retmul,imul);
+	   break;
+	 default:
+	   return inner(N,ret,sourceL,sourceR,numberOfUsedRowsInSource, destinationL, destinationR,retmul,imul);
+	   break;
+	 }
+     }
+   else
+     {
+       for(int i=0;i<numberOfUsedRowsInSource;i++,imul+=sourceL.getWidth())
+	 if(__builtin_expect(!temp[i],true))
+	   {
+	     typL scalar=sourceL.data[imul+newPivotIndex];
+	     //	  for(int j=0;j<n-d;j++)
+	     //  destinationL.data[retmul+j]=sourceL.data[imul+j+(j>=newPivotIndex)]-scalar*temp2L[j];
+	     for(int j=0;j<newPivotIndex;j++)
+	       destinationL.data[retmul+j]=sourceL.data[imul+j]-scalar*temp2L[j];
+	     for(int j=newPivotIndex;j<n-d;j++)
+	       destinationL.data[retmul+j]=sourceL.data[imul+j+1]-scalar*temp2L[j];
+	     destinationR[ret]=sourceR[i]-scalar*temp2R;
+	     
+	     bool leftHandSideZero=destinationL[ret].isZero();
+	     if(leftHandSideZero)
+	       {if(isNegative(destinationR[ret]))return -1;}//infeasible
+	     else
+	       {
+		 ret++;retmul+=destinationL.getWidth();
+	       }
+	   }
+     }
+
+    return ret;
+ }
+/*__attribute__ ((noinline))
+ int theLoop(int ret, int newPivotIndex, Matrix<typL> const &sourceL, Vector<typR> const &sourceR, int numberOfUsedRowsInSource, Matrix<typL> &destinationL, Vector<typR> &destinationR)
+ {
+   int retmul=ret*destinationL.getWidth();
+   int imul=0;
+   //   cerr<<newPivotIndex<<" "<<numberOfUsedRowsInSource<<" "<<n-d<<endl;
+   for(int i=0;i<numberOfUsedRowsInSource;i++,imul+=sourceL.getWidth())
+      if(__builtin_expect(!temp[i],true))
+	{
+	  typL scalar=sourceL.data[imul+newPivotIndex];
+	  //	  for(int j=0;j<n-d;j++)
+	  //  destinationL.data[retmul+j]=sourceL.data[imul+j+(j>=newPivotIndex)]-scalar*temp2L[j];
+	  	  for(int j=0;j<newPivotIndex;j++)
+	    destinationL.data[retmul+j]=sourceL.data[imul+j]-scalar*temp2L[j];
+	  for(int j=newPivotIndex;j<n-d;j++)
+	  destinationL.data[retmul+j]=sourceL.data[imul+j+1]-scalar*temp2L[j];
+	  destinationR[ret]=sourceR[i]-scalar*temp2R;
+	  
+	  bool leftHandSideZero=destinationL[ret].isZero();
+	  if(leftHandSideZero&&isNegative(destinationR[ret]))return -1;//infeasible
+	  ret++;retmul+=destinationL.getWidth();
+	}
+    return ret;
+ }
+*/
   /**
      This mehtod transforms the inequalities (rows of the matrix
      [sourceL|sourceR]) to their normal forms modulo L by reducing
@@ -845,7 +972,7 @@ __attribute__ ((noinline))
     //for(int i=0;i<oldBasis.size();i++)cerr<<","<<oldBasis[i];cerr<<endl;
     int ret=0;
 
-    if(numberOfUsedRowsInSource>temp.size())temp=vector<bool>(numberOfUsedRowsInSource);
+    if(numberOfUsedRowsInSource>temp.size())temp=vector<char/*bool*/>(numberOfUsedRowsInSource);
     for(int i=0;i<numberOfUsedRowsInSource;i++)temp[i]=false;
     for(int i=0;i<nn;i++)
       if(i!=a)
@@ -854,12 +981,17 @@ __attribute__ ((noinline))
 	  temp[oldBasis[i]]=true;
 	  if(ret<0)return -1;//throw infeasibility result to parent
 	}
+#if HASH
     for(int i=0;i<numberOfUsedRowsInSource;i++)
       if(!temp[i])
       {
 	ret=singleSingleReduction(sourceL,sourceR,destinationL,destinationR,newPivotIndex,ret,i);
 	if(ret<0)return -1;//throw infeasibility result to parent
       }
+#else //this code only work with hash disabled
+    ret=theLoop(ret, newPivotIndex,sourceL,sourceR,numberOfUsedRowsInSource,destinationL,destinationR);
+#endif
+
     //for(int i=0;i<n;i++)
       //      if(i!=a)
     //cerr<<"Destination"<<destination;
@@ -867,7 +999,7 @@ __attribute__ ((noinline))
   }
  int singleReduction(Matrix<typL> const &sourceL, Vector<typR> const &sourceR, int numberOfUsedRowsInSource, Matrix<typL> &destinationL, Vector<typR> &destinationR)
   {
-    /*    cerr<<"------------++++++++++-----------"<<endl;
+    /*   cerr<<"------------++++++++++-----------"<<endl;
     cerr<<*this;
     cerr<<"Source"<<source;
     cerr<<"Destination"<<destination;
@@ -2291,7 +2423,8 @@ public:
 			  //			  inequalityMatricesNumberOfUsedRows1[index]=numberOfAddedInequalities=reducer.singleReduction(inequalityMatricesL[index-1],inequalityMatricesR[index-1],inequalityMatricesNumberOfUsedRows2[index-1],inequalityMatricesL[index],inequalityMatricesR[index]);
 			  inequalityMatricesNumberOfUsedRows1[index]=numberOfAddedInequalities=reducer.singleReductionMakeBasisFirst(inequalityMatricesL[index-1],inequalityMatricesR[index-1],inequalityMatricesNumberOfUsedRows2[index-1],inequalityMatricesL[index],inequalityMatricesR[index],/*OLDBASIS*/lpList[index-1].basis,/*OLDAINV*/lpList[index-1].Ainv,AinvList[index]);
 			}
-
+		      //cerr<<inequalityMatricesL[index];
+		      //cerr<<inequalityMatricesNumberOfUsedRows1[index];
 		      if(numberOfAddedInequalities>=0)
 			if(fans[chosenFans[index]].cones[i].hasPointWithLastCoordinatePositiveInCone
 			   (inequalityMatricesL[index],inequalityMatricesR[index],

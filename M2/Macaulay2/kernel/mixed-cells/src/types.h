@@ -1,3 +1,4 @@
+#include <cmath>
 #define MAX_RANDOM_INT 50
 #define ABS(d) (((d)>=0)?(d):-(d))
 #define MAX(a,b) (((a)>(b))?(a):(b))
@@ -30,11 +31,11 @@ namespace mixedCells
   }
   bool isZero(double a)
   {
-    return (a<EPSILON)&&(a>-EPSILON);
+    return abs(a)<EPSILON;//(a<EPSILON)&(a>-EPSILON);
   }
   bool isZero2(double a)
   {
-    return (a<EPSILON)&&(a>-EPSILON);
+    return abs(a)<EPSILON;//(a<EPSILON)&(a>-EPSILON);
   }
 
   int volumeToInt(double d)

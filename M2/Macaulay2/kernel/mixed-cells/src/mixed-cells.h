@@ -210,6 +210,7 @@ friend std::ostream& operator<<(std::ostream& s, const Vector &v)
 
 template <class typ> class Matrix{
   int height,width;
+ public://bad
   typ *data;
  public:
   //  static MY_INLINE bool isZero(typ a){return (a<EPSILON)&&(a>-EPSILON);}
