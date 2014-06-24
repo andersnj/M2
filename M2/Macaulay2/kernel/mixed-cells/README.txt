@@ -37,6 +37,9 @@ gprof >gprof.output
 To profile with oprofile compile with
 g++ -O3 mixed-cells.cpp -lgmp -DDOUBLE_DOUBLE -D__assert_fail=__assert_fail2 -DSTACKDUMP_ENABLED -rdynamic -fno-omit-frame-pointer -DNDEBUG -funroll-loops
 
+g++ -O3 mixed-cells.cpp -lgmp -DDOUBLE_DOUBLE -D__assert_fail=__assert_fail2 -DSTACKDUMP_ENABLED -rdynamic -fno-omit-frame-pointer -DNDEBUG -funroll-loops -DHASH=0
+
+
 Why does profiling not work with -DNDEBUG ?
 One solution is to put __attribute__ ((noinline)) before each function to be profiled.
 

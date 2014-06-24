@@ -202,6 +202,17 @@ friend std::ostream& operator<<(std::ostream& s, const Vector &v)
       if(!isZero2(data[i]))return false;
     return true;
   }
+  typ hash(typ M)const
+  {
+    typ ret=0;
+    typ m=M;
+    for(int i=0;i<size();i++)
+      {
+	ret+=data[i]*m;
+	m*=M;
+      }
+    return ret;
+  }
 
   //  friend class Matrix<typ>;
   };
@@ -408,6 +419,13 @@ template <class typ> class Matrix{
 	//    for(int i=0;i<width;i++)
 	// (*this)[destinationRow][i]+=scalar* (*this)[sourceRow][i];
   }
+  void multiplyAndAddRow(int sourceRow, typ scalar,  Vector<typ> &destination)const
+  {
+    typ * __restrict source=data+width*sourceRow;
+    typ * __restrict dest=destination.data;
+    for(int i=0;i<width;i++)
+      dest[i]+=scalar*source[i];
+  }
   void replaceWithLinearCombination(int row1, typ a1, int row2, typ a2, int destinationRow)
   {
     typ * __restrict r1=data+width*row1;
@@ -439,7 +457,7 @@ template <class typ> class Matrix{
 	  //	  s<<m[i][j];
 	  s<<temp;
 	}
-      s<<" hash:"<<(int)m.hashValue(i,m.width);
+      //s<<" hash:"<<(int)m.hashValue(i,m.width);
       s<<endl;
     }
   return s;
@@ -849,12 +867,12 @@ template <class typ> class Matrix{
      We use the second int word of the data, since typ most likely is a double, and the interesting part of a 64bit double happens in those 32 bit.
    */
 #define HASHMASK 0xffffffff
-  MY_INLINE unsigned char hashValue(int row, int numberOfEntriesToConsider)const
+  /*  MY_INLINE unsigned char hashValue(int row, int numberOfEntriesToConsider)const
   {
     int ret=0;
     typ *d=data+row*width;
     for(int i=0;i<numberOfEntriesToConsider;i++)
-      ret=(((int*)(d+i))[1]&HASHMASK)+(ret>>7)/*+(ret<<15)*/;
+      ret=(((int*)(d+i))[1]&HASHMASK)+(ret>>7);
     return ret+(ret>>24)+(ret>>16)+(ret>>8);
   }
   MY_INLINE unsigned char hashValueOfNegative(int row, int numberOfEntriesToConsider)const
@@ -864,10 +882,10 @@ template <class typ> class Matrix{
     for(int i=0;i<numberOfEntriesToConsider;i++)
       {
 	typ temp=-d[i];
-	ret=(((int*)(&temp))[1]&HASHMASK)+(ret>>7)/*+(ret<<15)*/;
+	ret=(((int*)(&temp))[1]&HASHMASK)+(ret>>7);
       }
     return ret+(ret>>24)+(ret>>16)+(ret>>8);
-  }
+  }*/
 #endif
   bool rowsAreEqual(int row1, int row2, int numberOfEntriesToConsider)const
   {

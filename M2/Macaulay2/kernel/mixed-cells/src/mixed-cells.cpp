@@ -114,7 +114,9 @@ int main(int argc, char **argv)
   //recursionData.table.intersectTriviallyInIntersection(0,0,0,0);
   //return 0;
   recursionData.completeTable();
-
+#if HASH
+  recursionData.computeHash();
+#endif
    mixedCells::allocator.init(1000000);
    mixedCells::allocator.setStackMode(1);
 
