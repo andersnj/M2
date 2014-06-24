@@ -1,3 +1,16 @@
+Git cheat sheet
+---------------
+* Pull in the changes from repo: 
+`git pull`
+* Commit (after making changes locally): 
+`git commit -a -m "message for the log"`  
+* Push the local commits: 
+`git push origin master`
+* At any time see the status (in particular, it tells you which branch you are on): 
+`git status`
+* Graphical tool: 
+`gitk` (for Linux)
+
 Near future agenda
 ------------------
 eliminate dependence on ReducerExact by templating
